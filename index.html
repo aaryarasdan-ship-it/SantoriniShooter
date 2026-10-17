@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aegean Strike: Photoreal Edition — Online Multiplayer & CoD Movement</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+if (typeof THREE === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');
+}
+</script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script>
+if (typeof Peer === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"><\/script>');
+}
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Teko:wght@500;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
@@ -152,6 +162,18 @@
 </style>
 </head>
 <body>
+
+<div id="error-toast" style="display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:99999; background:rgba(225,29,72,0.95); border:1px solid #f43f5e; color:#fff; padding:10px 18px; border-radius:8px; font-family:'Rajdhani', sans-serif; font-size:14px; font-weight:700; box-shadow:0 8px 30px rgba(0,0,0,0.8); backdrop-filter:blur(8px);"></div>
+<script>
+window.addEventListener('error', function(e) {
+  var b = document.getElementById('error-toast');
+  if (b) {
+    b.style.display = 'block';
+    b.textContent = 'NOTICE: ' + (e.message || e);
+    setTimeout(function() { b.style.display = 'none'; }, 6000);
+  }
+});
+</script>
 
 <canvas id="game-canvas"></canvas>
 <div id="nametags-layer"></div>
@@ -1747,9 +1769,12 @@
     if (activeGamepadIndex === null) return;
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const gp = pads[activeGamepadIndex];
-    if (gp && gp.vibrationActuator && gp.vibrationActuator.playEffect) {
-      gp.vibrationActuator.playEffect('dual-rumble', { duration: durationMs, strongMagnitude: strong, weakMagnitude: weak }).catch(() => {});
-    }
+    try {
+      if (gp && gp.vibrationActuator && typeof gp.vibrationActuator.playEffect === 'function') {
+        const p = gp.vibrationActuator.playEffect('dual-rumble', { duration: durationMs, strongMagnitude: strong, weakMagnitude: weak });
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    } catch (err) {}
   }
 
   function applyStickCurve(val, dz = 0.12) {
@@ -2431,4 +2456,198 @@
       }
     });
 
+    // Bullet Tracers Update
+    for (let i = tracers.length - 1; i >= 0; i--) {
+      tracers[i].life -= dt;
+      tracers[i].mat.opacity = Math.max(0, tracers[i].life / 0.08);
+      if (tracers[i].life <= 0) {
+        scene.remove(tracers[i].line);
+        tracers.splice(i, 1);
+      }
+    }
 
+    renderer.render(scene, camera);
+  }
+
+  // ============================================================================
+  // 11. MENU CONTROLS, FULLSCREEN, SENSITIVITY & GRAPHICS PRESETS
+  // ============================================================================
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  }
+
+  function toggleFullscreen() {
+    try {
+      if (!isFullscreen()) {
+        const docEl = document.documentElement;
+        const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+        if (requestFS) {
+          const p = requestFS.call(docEl);
+          if (p && typeof p.catch === 'function') {
+            p.catch(err => console.warn('Fullscreen request failed:', err));
+          }
+        }
+      } else {
+        const exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+        if (exitFS) {
+          const p = exitFS.call(document);
+          if (p && typeof p.catch === 'function') {
+            p.catch(err => console.warn('Exit fullscreen failed:', err));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen error:', err);
+    }
+  }
+
+  function updateFullscreenUI() {
+    const fs = isFullscreen();
+    const hudFsLabel = document.getElementById('hud-fs-label');
+    const menuFsLabel = document.getElementById('menu-fs-label');
+    if (hudFsLabel) hudFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
+    if (menuFsLabel) menuFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
+  }
+
+  document.addEventListener('fullscreenchange', updateFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+  document.addEventListener('mozfullscreenchange', updateFullscreenUI);
+
+  function deployMatch() {
+    ensureAudio();
+    player.name = (document.getElementById('player-callsign').value || 'AARYA-01').toUpperCase();
+    baseFov = parseFloat(document.getElementById('sl-fov').value);
+    const autoFs = document.getElementById('chk-auto-fs')?.checked;
+    if (autoFs && !isFullscreen()) {
+      toggleFullscreen();
+    }
+    document.getElementById('menu-overlay').style.display = 'none';
+    yawObj.position.set(player.x, player.y, player.z);
+    yawObj.rotation.y = player.yaw;
+    pitchObj.rotation.x = player.pitch;
+    gameActive = true;
+    try {
+      const p = canvas.requestPointerLock?.();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (err) {}
+  }
+
+  function pauseGame() {
+    gameActive = false;
+    document.exitPointerLock?.();
+    document.getElementById('menu-overlay').style.display = 'flex';
+  }
+
+  document.getElementById('btn-deploy').addEventListener('click', deployMatch);
+
+  document.getElementById('btn-hud-fs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFullscreen();
+  });
+
+  document.getElementById('btn-hud-menu')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pauseGame();
+  });
+
+  document.getElementById('btn-menu-fs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFullscreen();
+  });
+
+  function setGameMode(mode) {
+    gameMode = mode;
+    document.getElementById('mode-tdm').classList.toggle('active', mode === 'tdm');
+    document.getElementById('mode-ffa').classList.toggle('active', mode === 'ffa');
+    document.getElementById('mode-1v1').classList.toggle('active', mode === '1v1');
+    const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
+    document.getElementById('score-cap').textContent = cap;
+    if (mode === '1v1') {
+      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
+    } else if (mode === 'tdm') {
+      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
+    } else {
+      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
+    }
+    syncBotsForMode();
+  }
+
+  document.getElementById('mode-tdm').addEventListener('click', () => setGameMode('tdm'));
+  document.getElementById('mode-ffa').addEventListener('click', () => setGameMode('ffa'));
+  document.getElementById('mode-1v1').addEventListener('click', () => setGameMode('1v1'));
+
+  document.querySelectorAll('[data-gfx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-gfx]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const preset = btn.getAttribute('data-gfx');
+      if (preset === 'ultra') {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        sunLight.castShadow = true;
+      } else if (preset === 'high') {
+        renderer.setPixelRatio(1.25);
+        sunLight.castShadow = true;
+      } else {
+        renderer.setPixelRatio(1.0);
+        sunLight.castShadow = false;
+      }
+    });
+  });
+
+  // Mouse & ADS sensitivity slider listeners & persistence
+  const slMouseSens = document.getElementById('sl-mouse-sens');
+  const slAdsSens = document.getElementById('sl-ads-sens');
+  const slFov = document.getElementById('sl-fov');
+
+  try {
+    const savedMouse = localStorage.getItem('aegean_mouse_sens');
+    if (savedMouse && slMouseSens) {
+      slMouseSens.value = savedMouse;
+      const elVal = document.getElementById('val-mouse-sens');
+      if (elVal) elVal.textContent = savedMouse;
+    }
+    const savedAds = localStorage.getItem('aegean_ads_sens');
+    if (savedAds && slAdsSens) {
+      slAdsSens.value = savedAds;
+      const elVal = document.getElementById('val-ads-sens');
+      if (elVal) elVal.textContent = savedAds + 'x';
+    }
+    const savedFov = localStorage.getItem('aegean_fov');
+    if (savedFov && slFov) {
+      slFov.value = savedFov;
+      const elVal = document.getElementById('val-fov');
+      if (elVal) elVal.textContent = savedFov;
+      baseFov = parseFloat(savedFov);
+    }
+  } catch (err) {}
+
+  slMouseSens?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-mouse-sens');
+    if (elVal) elVal.textContent = e.target.value;
+    try { localStorage.setItem('aegean_mouse_sens', e.target.value); } catch (err) {}
+  });
+
+  slAdsSens?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-ads-sens');
+    if (elVal) elVal.textContent = e.target.value + 'x';
+    try { localStorage.setItem('aegean_ads_sens', e.target.value); } catch (err) {}
+  });
+
+  slFov?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-fov');
+    if (elVal) elVal.textContent = e.target.value;
+    baseFov = parseFloat(e.target.value);
+    try { localStorage.setItem('aegean_fov', e.target.value); } catch (err) {}
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
