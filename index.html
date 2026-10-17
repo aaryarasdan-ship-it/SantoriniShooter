@@ -58,10 +58,59 @@
   #hitmarker.headshot::before, #hitmarker.headshot::after { background: #f43f5e; box-shadow: 0 0 8px #f43f5e; }
 
   /* SNIPER SCOPE OVERLAY */
-  #sniper-scope { position: fixed; inset: 0; pointer-events: none; z-index: 11; display: none; background: radial-gradient(circle, transparent 29%, rgba(0,0,0,0.96) 31%); }
-  #sniper-scope::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0,0,0,0.85); }
-  #sniper-scope::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,0.85); }
+  #sniper-scope {
+    position: fixed; inset: 0; pointer-events: none; z-index: 15; display: none;
+    background: radial-gradient(circle at center, transparent 31%, rgba(6,12,22,0.7) 35%, rgba(2,5,10,0.98) 40%);
+  }
+  .scope-bezel {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(84vh, 84vw); height: min(84vh, 84vw);
+    border-radius: 50%; border: 6px solid #0f172a;
+    box-shadow: inset 0 0 65px rgba(0,0,0,0.98), 0 0 0 9999px rgba(3,7,14,0.98);
+    overflow: hidden; pointer-events: none;
+  }
+  .scope-bezel::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(30,58,138,0.12) 0%, rgba(15,23,42,0.45) 85%, rgba(2,6,23,0.85) 100%);
+    box-shadow: inset 0 0 35px rgba(56,189,248,0.15);
+  }
+  .scope-line-h { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(15,23,42,0.92); transform: translateY(-50%); }
+  .scope-line-v { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(15,23,42,0.92); transform: translateX(-50%); }
+  .scope-mil-h { position: absolute; top: 50%; left: 50%; width: 220px; height: 10px; transform: translate(-50%, -50%); display: flex; justify-content: space-between; align-items: center; }
+  .scope-mil-dot { width: 3px; height: 3px; background: #0f172a; border-radius: 50%; }
+  .scope-mil-v { position: absolute; top: 50%; left: 50%; width: 10px; height: 220px; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+  .scope-center-dot { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: #f43f5e; transform: translate(-50%, -50%); box-shadow: 0 0 8px #f43f5e, 0 0 16px #f43f5e; }
+  .scope-range-text { position: absolute; bottom: 18%; right: 28%; font-family: 'Teko', sans-serif; font-size: 19px; color: rgba(244,63,94,0.75); letter-spacing: 2px; }
 
+  /* AR HOLOGRAPHIC RETICLE OVERLAY */
+  #ar-holo-scope {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 140px; height: 140px; pointer-events: none; z-index: 14; display: none;
+    opacity: 0; transition: opacity 0.12s ease;
+  }
+  .holo-circle {
+    position: absolute; inset: 26px; border-radius: 50%;
+    border: 2px solid rgba(56,189,248,0.85);
+    box-shadow: 0 0 12px rgba(56,189,248,0.5), inset 0 0 10px rgba(56,189,248,0.3);
+  }
+  .holo-tick-t { position: absolute; top: 12px; left: 50%; width: 2px; height: 14px; background: #38bdf8; transform: translateX(-50%); box-shadow: 0 0 6px #38bdf8; }
+  .holo-tick-b { position: absolute; bottom: 12px; left: 50%; width: 2px; height: 14px; background: #38bdf8; transform: translateX(-50%); box-shadow: 0 0 6px #38bdf8; }
+  .holo-tick-l { position: absolute; left: 12px; top: 50%; width: 14px; height: 2px; background: #38bdf8; transform: translateY(-50%); box-shadow: 0 0 6px #38bdf8; }
+  .holo-tick-r { position: absolute; right: 12px; top: 50%; width: 14px; height: 2px; background: #38bdf8; transform: translateY(-50%); box-shadow: 0 0 6px #38bdf8; }
+  .holo-center-dot {
+    position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%;
+    background: #f43f5e; transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px #f43f5e, 0 0 14px #f43f5e;
+  }
+
+  /* KEYBINDINGS PANEL */
+  .kb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+  .kb-row { display: flex; justify-content: space-between; align-items: center; background: rgba(10,18,32,0.7); border: 1px solid rgba(148,163,184,0.18); border-radius: 5px; padding: 4px 8px; font-size: 12px; }
+  .kb-action { font-weight: 700; color: #cbd5e1; }
+  .btn-keybind { cursor: pointer; background: rgba(30,41,59,0.85); border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; color: #38bdf8; font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700; padding: 2px 7px; min-width: 65px; text-align: center; text-transform: uppercase; transition: all 0.15s; }
+  .btn-keybind:hover { background: rgba(56,189,248,0.22); color: #fff; }
+  .btn-keybind.rebinding { background: #e11d48; border-color: #f43f5e; color: #fff; animation: pulse 0.8s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   /* DAMAGE VIGNETTE & MEDAL BANNER */
   #dmg-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 9; box-shadow: inset 0 0 110px rgba(244,63,94,0); transition: box-shadow 0.15s; }
   #medal-feed { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 14; text-align: center; font-family: 'Teko', sans-serif; font-size: 34px; color: #facc15; text-shadow: 0 4px 16px rgba(0,0,0,0.85); letter-spacing: 2px; opacity: 0; transition: opacity 0.2s, transform 0.2s; }
@@ -126,7 +175,28 @@
 <canvas id="game-canvas"></canvas>
 <div id="nametags-layer"></div>
 <div id="dmg-vignette"></div>
-<div id="sniper-scope"></div>
+<div id="sniper-scope">
+  <div class="scope-bezel">
+    <div class="scope-line-h"></div>
+    <div class="scope-line-v"></div>
+    <div class="scope-mil-h">
+      <span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span>
+    </div>
+    <div class="scope-mil-v">
+      <span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span><span class="scope-mil-dot"></span>
+    </div>
+    <div class="scope-center-dot"></div>
+    <div class="scope-range-text">RANGE: 400M • .338 CAL</div>
+  </div>
+</div>
+<div id="ar-holo-scope">
+  <div class="holo-circle"></div>
+  <div class="holo-tick-t"></div>
+  <div class="holo-tick-b"></div>
+  <div class="holo-tick-l"></div>
+  <div class="holo-tick-r"></div>
+  <div class="holo-center-dot"></div>
+</div>
 <div id="medal-feed">HEADSHOT +150</div>
 
 <div id="center-reticle">
@@ -156,6 +226,10 @@
       <div class="badge-pill" id="btn-hud-fs" style="pointer-events: auto; cursor: pointer; border-color: rgba(56,189,248,0.5); color: #38bdf8;" title="Toggle Fullscreen (F)">
         <span style="font-size: 13px;">⛶</span>
         <span id="hud-fs-label">Fullscreen (F)</span>
+      </div>
+      <div class="badge-pill" id="btn-hud-menu" style="pointer-events: auto; cursor: pointer; border-color: rgba(250,204,21,0.5); color: #facc15;" title="Return to Menu (M)">
+        <span>⚙️</span>
+        <span id="hud-menu-label">Menu (M)</span>
       </div>
     </div>
 
@@ -273,7 +347,7 @@
         </div>
       </div>
 
-      <button class="btn-deploy" id="btn-deploy">DEPLOY TO SANTORINI (CLICK OR PRESS MENU)</button>
+      <button class="btn-deploy" id="btn-deploy">DEPLOY TO SANTORINI (CLICK OR PRESS M)</button>
       <div style="display:flex; gap:10px; margin-top:8px; align-items:center;">
         <button class="btn" id="btn-menu-fs" style="display:flex; align-items:center; justify-content:center; gap:6px;">
           <span>⛶</span> <span id="menu-fs-label">Fullscreen (F)</span>
@@ -310,19 +384,27 @@
         </div>
       </div>
 
+      <!-- CUSTOM CONTROL BINDINGS -->
+      <div class="section-box">
+        <div class="sec-head">
+          <span>⚙️ Custom Keybindings (Click to Rebind)</span>
+          <button class="btn" id="btn-reset-binds" style="flex:0 0 auto; padding:2px 8px; font-size:11px;">Reset Defaults</button>
+        </div>
+        <div class="kb-grid" id="kb-grid-container"></div>
+      </div>
+
       <!-- CONTROLS GUIDE -->
       <div class="section-box" style="font-size:12px;line-height:1.55;color:#cbd5e1;">
         <div class="sec-head"><span>⚡ Call of Duty Movement & Controls</span></div>
-        <div><strong style="color:#fff;">Tactical Sprint:</strong> <kbd>Shift</kbd> / <kbd>L3 Click</kbd> (High-ready speed burst)</div>
-        <div><strong style="color:#fff;">Tactical Slide:</strong> <kbd>C</kbd> / <kbd>B</kbd> or <kbd>R3</kbd> while sprinting</div>
-        <div><strong style="color:#fff;">Slide-Cancel:</strong> Press <kbd>Space</kbd> / <kbd>A</kbd> mid-slide to pop up ready</div>
+        <div><strong style="color:#fff;">Tactical Sprint:</strong> <kbd id="lbl-bind-sprint">Shift</kbd> / <kbd>L3</kbd> (High-ready speed burst)</div>
+        <div><strong style="color:#fff;">Tactical Slide:</strong> <kbd id="lbl-bind-slide">C</kbd> / <kbd>B</kbd> or <kbd>R3</kbd> while sprinting</div>
+        <div><strong style="color:#fff;">Slide-Cancel:</strong> Press <kbd id="lbl-bind-jump">Space</kbd> / <kbd>A</kbd> mid-slide to pop up ready</div>
         <div><strong style="color:#fff;">Ledge Mantle:</strong> Hold <kbd>Space</kbd> / <kbd>A</kbd> near terraces & walls</div>
-        <div><strong style="color:#fff;">Fire / Centered ADS:</strong> <kbd>L-Click</kbd> & <kbd>R-Click</kbd> / <kbd>RT</kbd> & <kbd>LT</kbd></div>
-        <div><strong style="color:#fff;">Swap Weapons / Reload:</strong> <kbd>1-3</kbd> & <kbd>R</kbd> / <kbd>Y</kbd> & <kbd>X</kbd></div>
-        <div><strong style="color:#fff;">Scoreboard / Pause:</strong> <kbd>Tab</kbd> & <kbd>Esc</kbd> / <kbd>View</kbd> & <kbd>Menu</kbd></div>
-        <div><strong style="color:#fff;">Fullscreen:</strong> <kbd>F</kbd> / Click ⛶ (Toggle Fullscreen)</div>
-      </div>
-    </div>
+        <div><strong style="color:#fff;">Fire / Functional ADS:</strong> <kbd>L-Click</kbd> & <kbd>R-Click</kbd> (Holo Sight & Sniper Mil-Dot)</div>
+        <div><strong style="color:#fff;">Swap Weapons / Reload:</strong> <kbd>1-3</kbd> & <kbd id="lbl-bind-reload">R</kbd></div>
+        <div><strong style="color:#fff;">Return to Menu:</strong> <kbd id="lbl-bind-menu">M</kbd> / Click ⚙️ (Pause & Settings)</div>
+        <div><strong style="color:#fff;">Fullscreen:</strong> <kbd id="lbl-bind-fs">F</kbd> / Click ⛶ (Toggle Fullscreen)</div>
+      </div>    </div>
   </div>
 </div>
 
@@ -635,22 +717,168 @@
   const weaponRig = new THREE.Group();
   camera.add(weaponRig);
 
-  const gunMetal = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.32, metalness: 0.85 });
-  const gunAccent = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.28, metalness: 0.7 });
-  const receiverMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.11, 0.46), gunMetal);
-  const barrelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.42, 12), gunMetal);
-  barrelMesh.rotation.x = Math.PI / 2;
-  barrelMesh.position.set(0, 0.02, -0.35);
-  const sightFrame = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.048, 0.06), gunAccent);
-  sightFrame.position.set(0, 0.078, -0.06);
-  const redDot = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 8), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
-  redDot.position.set(0, 0.078, -0.06);
-  weaponRig.add(receiverMesh, barrelMesh, sightFrame, redDot);
+  // Common Weapon Materials
+  const matGunBlack = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.35, metalness: 0.85 });
+  const matGunMetal = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.28, metalness: 0.9 });
+  const matGunSteel = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.22, metalness: 0.85 });
+  const matPolymerDark = new THREE.MeshStandardMaterial({ color: 0x0b1320, roughness: 0.75, metalness: 0.15 });
+  const matCyanAccent = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.25, metalness: 0.75 });
+  const matGoldBrass = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.2, metalness: 0.95 });
+  const matRedShell = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.45, metalness: 0.2 });
+  const matOpticGlass = new THREE.MeshPhysicalMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42, roughness: 0.1, transmission: 0.85 });
+
+  // 1. ASSAULT RIFLE: MK-18 HELIOS CARBINE
+  const modelRifle = new THREE.Group();
+  const rcvLower = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.082, 0.38), matGunBlack);
+  rcvLower.position.set(0, 0, 0);
+  const rcvUpper = new THREE.Mesh(new THREE.BoxGeometry(0.064, 0.045, 0.36), matGunMetal);
+  rcvUpper.position.set(0, 0.055, -0.02);
+  const rcvRail = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.016, 0.38), matGunSteel);
+  rcvRail.position.set(0, 0.082, -0.02);
+  const rcvHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.068, 0.30), matGunBlack);
+  rcvHandguard.position.set(0, 0.035, -0.32);
+  const rcvBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.38, 12), matGunSteel);
+  rcvBarrel.rotation.x = Math.PI / 2;
+  rcvBarrel.position.set(0, 0.035, -0.42);
+  const rcvBrake = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.065, 12), matCyanAccent);
+  rcvBrake.rotation.x = Math.PI / 2;
+  rcvBrake.position.set(0, 0.035, -0.62);
+  const rcvForegrip = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.065, 0.085), matPolymerDark);
+  rcvForegrip.rotation.x = 0.4;
+  rcvForegrip.position.set(0, -0.025, -0.30);
+  const rcvMag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.18, 0.082), matGunBlack);
+  rcvMag.rotation.x = -0.22;
+  rcvMag.position.set(0, -0.11, -0.06);
+  const rcvGrip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.13, 0.055), matPolymerDark);
+  rcvGrip.rotation.x = 0.32;
+  rcvGrip.position.set(0, -0.085, 0.12);
+  const rcvStock = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.12, 0.24), matPolymerDark);
+  rcvStock.position.set(0, 0.01, 0.28);
+  const rcvBuffer = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.22, 10), matGunSteel);
+  rcvBuffer.rotation.x = Math.PI / 2;
+  rcvBuffer.position.set(0, 0.03, 0.22);
+  // Holographic Sight Mount & Glass Window
+  const holoBase = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.02, 0.12), matGunBlack);
+  holoBase.position.set(0, 0.096, -0.04);
+  const holoHood = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.055, 0.095), matCyanAccent);
+  holoHood.position.set(0, 0.125, -0.04);
+  const holoGlass = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.042, 0.008), matOpticGlass);
+  holoGlass.position.set(0, 0.125, -0.04);
+  const holoReticle3D = new THREE.Mesh(new THREE.RingGeometry(0.006, 0.008, 16), new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide }));
+  holoReticle3D.position.set(0, 0.125, -0.045);
+  const holoDot3D = new THREE.Mesh(new THREE.SphereGeometry(0.0028, 8, 8), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
+  holoDot3D.position.set(0, 0.125, -0.045);
+  modelRifle.add(rcvLower, rcvUpper, rcvRail, rcvHandguard, rcvBarrel, rcvBrake, rcvForegrip, rcvMag, rcvGrip, rcvStock, rcvBuffer, holoBase, holoHood, holoGlass, holoReticle3D, holoDot3D);
+
+  // 2. SHOTGUN: M4 POSEIDON COMBAT SHOTGUN
+  const modelShotgun = new THREE.Group();
+  const sgRcv = new THREE.Mesh(new THREE.BoxGeometry(0.076, 0.11, 0.36), matGunBlack);
+  sgRcv.position.set(0, 0, 0);
+  const sgBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.52, 14), matGunSteel);
+  sgBarrel.rotation.x = Math.PI / 2;
+  sgBarrel.position.set(0, 0.038, -0.38);
+  const sgVentRib = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.014, 0.46), matGunMetal);
+  sgVentRib.position.set(0, 0.065, -0.38);
+  const sgMagTube = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.48, 14), matGunBlack);
+  sgMagTube.rotation.x = Math.PI / 2;
+  sgMagTube.position.set(0, -0.014, -0.36);
+  const sgForend = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.24, 14), matPolymerDark);
+  sgForend.rotation.x = Math.PI / 2;
+  sgForend.position.set(0, -0.014, -0.32);
+  const sgClamp = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.075, 0.035), matGunMetal);
+  sgClamp.position.set(0, 0.012, -0.56);
+  const sgStock = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.13, 0.30), matPolymerDark);
+  sgStock.position.set(0, -0.02, 0.28);
+  const sgPad = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.138, 0.03), matGunBlack);
+  sgPad.position.set(0, -0.02, 0.435);
+  const sgGrip = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.125, 0.055), matPolymerDark);
+  sgGrip.rotation.x = 0.35;
+  sgGrip.position.set(0, -0.088, 0.11);
+  const sgCarrier = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.055, 0.18), matGunBlack);
+  sgCarrier.position.set(-0.046, 0.01, -0.04);
+  modelShotgun.add(sgCarrier);
+  for (let s = 0; s < 4; s++) {
+    const shellGroup = new THREE.Group();
+    const shellHull = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.048, 10), matRedShell);
+    shellHull.rotation.x = Math.PI / 2;
+    const shellBase = new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0095, 0.014, 10), matGoldBrass);
+    shellBase.rotation.x = Math.PI / 2;
+    shellBase.position.z = 0.026;
+    shellGroup.add(shellHull, shellBase);
+    shellGroup.position.set(-0.058, 0.018 - s * 0.012, -0.09 + s * 0.038);
+    modelShotgun.add(shellGroup);
+  }
+  const sgGhostRear = new THREE.Mesh(new THREE.RingGeometry(0.006, 0.010, 12), new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide }));
+  sgGhostRear.position.set(0, 0.076, 0.14);
+  const sgFrontBead = new THREE.Mesh(new THREE.SphereGeometry(0.0035, 8, 8), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
+  sgFrontBead.position.set(0, 0.076, -0.62);
+  modelShotgun.add(sgRcv, sgBarrel, sgVentRib, sgMagTube, sgForend, sgClamp, sgStock, sgPad, sgGrip, sgGhostRear, sgFrontBead);
+
+  // 3. SNIPER RIFLE: AWM ARTEMIS LANCE
+  const modelSniper = new THREE.Group();
+  const snStock = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.13, 0.42), matPolymerDark);
+  snStock.position.set(0, -0.03, 0.26);
+  const snCheek = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.038, 0.16), matGunMetal);
+  snCheek.position.set(0, 0.054, 0.22);
+  const snButtpad = new THREE.Mesh(new THREE.BoxGeometry(0.076, 0.142, 0.032), matGunBlack);
+  snButtpad.position.set(0, -0.03, 0.47);
+  const snRcv = new THREE.Mesh(new THREE.BoxGeometry(0.078, 0.082, 0.36), matGunBlack);
+  snRcv.position.set(0, 0.02, 0);
+  const snBoltStem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.055, 8), matGunSteel);
+  snBoltStem.rotation.z = -1.1;
+  snBoltStem.position.set(0.058, 0.035, 0.08);
+  const snBoltKnob = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 10), matGoldBrass);
+  snBoltKnob.position.set(0.095, 0.015, 0.08);
+  const snBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.019, 0.78, 14), matGunSteel);
+  snBarrel.rotation.x = Math.PI / 2;
+  snBarrel.position.set(0, 0.035, -0.56);
+  const snBrake = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.036, 0.085), matGunBlack);
+  snBrake.position.set(0, 0.035, -0.96);
+  const snMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.095), matGunBlack);
+  snMag.position.set(0, -0.085, -0.04);
+  const snBipodMount = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.03, 0.05), matGunMetal);
+  snBipodMount.position.set(0, -0.01, -0.42);
+  const snBipodLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 8), matGunBlack);
+  snBipodLegL.rotation.x = Math.PI / 2;
+  snBipodLegL.position.set(-0.028, -0.032, -0.42);
+  const snBipodLegR = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 8), matGunBlack);
+  snBipodLegR.rotation.x = Math.PI / 2;
+  snBipodLegR.position.set(0.028, -0.032, -0.42);
+  const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.032, 0.24), matGunBlack);
+  scopeMount.position.set(0, 0.076, -0.02);
+  const scopeTube = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.34, 14), matGunMetal);
+  scopeTube.rotation.x = Math.PI / 2;
+  scopeTube.position.set(0, 0.108, -0.02);
+  const scopeBellObj = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.022, 0.11, 14), matGunBlack);
+  scopeBellObj.rotation.x = -Math.PI / 2;
+  scopeBellObj.position.set(0, 0.108, -0.22);
+  const scopeBellOcular = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.022, 0.07, 14), matGunBlack);
+  scopeBellOcular.rotation.x = Math.PI / 2;
+  scopeBellOcular.position.set(0, 0.108, 0.17);
+  const scopeTurretTop = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.024, 10), matCyanAccent);
+  scopeTurretTop.position.set(0, 0.136, -0.02);
+  const scopeTurretSide = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.024, 10), matCyanAccent);
+  scopeTurretSide.rotation.z = Math.PI / 2;
+  scopeTurretSide.position.set(0.028, 0.108, -0.02);
+  const scopeLensFront = new THREE.Mesh(new THREE.CircleGeometry(0.03, 16), new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide }));
+  scopeLensFront.position.set(0, 0.108, -0.276);
+  modelSniper.add(snStock, snCheek, snButtpad, snRcv, snBoltStem, snBoltKnob, snBarrel, snBrake, snMag, snBipodMount, snBipodLegL, snBipodLegR, scopeMount, scopeTube, scopeBellObj, scopeBellOcular, scopeTurretTop, scopeTurretSide, scopeLensFront);
+
+  weaponRig.add(modelRifle, modelShotgun, modelSniper);
 
   const muzzleLight = new THREE.PointLight(0xffb703, 0, 6);
   muzzleLight.position.set(0, 0.02, -0.62);
   weaponRig.add(muzzleLight);
 
+  function updateWeaponVisuals() {
+    const idx = player.weaponIdx;
+    modelRifle.visible = (idx === 0);
+    modelShotgun.visible = (idx === 1);
+    modelSniper.visible = (idx === 2);
+    muzzleLight.position.z = idx === 2 ? -0.98 : idx === 1 ? -0.66 : -0.62;
+    updateWeaponHUD();
+  }
+  updateWeaponVisuals();
   // ============================================================================
   // 5. PLAYER STATE, CALL OF DUTY MOVEMENT & BALLISTICS
   // ============================================================================
@@ -661,6 +889,111 @@
   const SCORE_LIMIT_1V1 = 10;
   let scoreHelios = 0, scoreIcarus = 0;
   let baseFov = 86;
+
+  // ============================================================================
+  // KEYBINDINGS SYSTEM & CONTROL REBINDING
+  // ============================================================================
+  const DEFAULT_BINDINGS = {
+    forward: 'KeyW',
+    backward: 'KeyS',
+    left: 'KeyA',
+    right: 'KeyD',
+    jump: 'Space',
+    sprint: 'ShiftLeft',
+    slide: 'KeyC',
+    reload: 'KeyR',
+    weapon1: 'Digit1',
+    weapon2: 'Digit2',
+    weapon3: 'Digit3',
+    fullscreen: 'KeyF',
+    menu: 'KeyM',
+    scoreboard: 'Tab'
+  };
+
+  const BINDING_NAMES = {
+    forward: 'Move Forward',
+    backward: 'Move Backward',
+    left: 'Move Left',
+    right: 'Move Right',
+    jump: 'Jump / Mantle',
+    sprint: 'Tactical Sprint',
+    slide: 'Slide / Crouch',
+    reload: 'Reload',
+    weapon1: 'MK-18 Carbine',
+    weapon2: 'M4 Shotgun',
+    weapon3: 'AWM Sniper',
+    fullscreen: 'Toggle Fullscreen',
+    menu: 'Menu / Pause',
+    scoreboard: 'Scoreboard'
+  };
+
+  let bindings = { ...DEFAULT_BINDINGS };
+  try {
+    const saved = localStorage.getItem('aegean_keybindings');
+    if (saved) bindings = { ...DEFAULT_BINDINGS, ...JSON.parse(saved) };
+  } catch (e) {}
+
+  function formatKeyDisplay(code) {
+    if (!code) return 'NONE';
+    if (code.startsWith('Key')) return code.slice(3).toUpperCase();
+    if (code.startsWith('Digit')) return code.slice(5);
+    if (code === 'ShiftLeft' || code === 'ShiftRight') return 'SHIFT';
+    if (code === 'ControlLeft' || code === 'ControlRight') return 'CTRL';
+    if (code === 'AltLeft' || code === 'AltRight') return 'ALT';
+    if (code === 'Space') return 'SPACE';
+    if (code === 'Escape') return 'ESC';
+    return code.toUpperCase();
+  }
+
+  let activeRebindingAction = null;
+  function renderKeybindingsUI() {
+    const container = document.getElementById('kb-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.keys(BINDING_NAMES).forEach(action => {
+      const row = document.createElement('div');
+      row.className = 'kb-row';
+      const label = document.createElement('span');
+      label.className = 'kb-action';
+      label.textContent = BINDING_NAMES[action];
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-keybind' + (activeRebindingAction === action ? ' rebinding' : '');
+      btn.textContent = activeRebindingAction === action ? 'PRESS KEY...' : formatKeyDisplay(bindings[action]);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeRebindingAction = (activeRebindingAction === action ? null : action);
+        renderKeybindingsUI();
+      });
+
+      row.appendChild(label);
+      row.appendChild(btn);
+      container.appendChild(row);
+    });
+
+    // Update controls guide labels
+    const lblSprint = document.getElementById('lbl-bind-sprint');
+    if (lblSprint) lblSprint.textContent = formatKeyDisplay(bindings.sprint);
+    const lblSlide = document.getElementById('lbl-bind-slide');
+    if (lblSlide) lblSlide.textContent = formatKeyDisplay(bindings.slide);
+    const lblJump = document.getElementById('lbl-bind-jump');
+    if (lblJump) lblJump.textContent = formatKeyDisplay(bindings.jump);
+    const lblReload = document.getElementById('lbl-bind-reload');
+    if (lblReload) lblReload.textContent = formatKeyDisplay(bindings.reload);
+    const lblMenu = document.getElementById('lbl-bind-menu');
+    if (lblMenu) lblMenu.textContent = formatKeyDisplay(bindings.menu);
+    const lblFs = document.getElementById('lbl-bind-fs');
+    if (lblFs) lblFs.textContent = formatKeyDisplay(bindings.fullscreen);
+  }
+
+  document.getElementById('btn-reset-binds')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    bindings = { ...DEFAULT_BINDINGS };
+    try { localStorage.setItem('aegean_keybindings', JSON.stringify(bindings)); } catch (err) {}
+    activeRebindingAction = null;
+    renderKeybindingsUI();
+  });
+  renderKeybindingsUI();
 
   const player = {
     id: 'local',
@@ -675,37 +1008,70 @@
     stance: 'stand', // 'stand' | 'crouch' | 'slide' | 'tac-sprint' | 'mantle'
     slideTimer: 0,
     slideDirX: 0, slideDirZ: 0,
-    adsAlpha: 0,
-    isAds: false,
     weaponIdx: 0,
     ammo: [30, 8, 5],
-    reserve: [150, 48, 25],
     fireCooldown: 0,
     reloading: 0,
-    lastHitTime: 0
+    isAds: false,
+    adsAlpha: 0,
+    lastHitTime: 0,
+    // Detailed Procedural Animation & Sway State
+    walkCycle: 0,
+    swayX: 0, swayY: 0, swayRoll: 0,
+    landDip: 0,
+    drawTimer: 0,
+    recoilKickZ: 0, recoilKickRotX: 0,
+    prevVy: 0
   };
-
   const keys = {};
   let mouseDownL = false, mouseDownR = false;
 
   window.addEventListener('keydown', e => {
+    // If currently rebinding a key in the settings menu
+    if (activeRebindingAction) {
+      e.preventDefault();
+      if (e.code !== 'Escape') {
+        bindings[activeRebindingAction] = e.code;
+        try { localStorage.setItem('aegean_keybindings', JSON.stringify(bindings)); } catch (err) {}
+      }
+      activeRebindingAction = null;
+      renderKeybindingsUI();
+      return;
+    }
+
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     keys[e.code] = true;
-    if (e.code === 'KeyF') {
+
+    // Return to Menu / Pause: press 'M' (or configured menu binding) or Escape
+    if (e.code === bindings.menu || e.code === 'KeyM' || (e.code === 'Escape' && gameActive)) {
+      e.preventDefault();
+      if (gameActive) pauseGame();
+      else deployMatch();
+      return;
+    }
+
+    if (e.code === bindings.fullscreen || e.code === 'KeyF') {
       e.preventDefault();
       toggleFullscreen();
       return;
     }
-    if (e.code === 'Tab') { e.preventDefault(); document.getElementById('scoreboard-modal').style.display = 'flex'; updateScoreboardUI(); }
-    if (!gameActive) return;
-    if (e.code === 'Digit1') switchWeapon(0);
-    if (e.code === 'Digit2') switchWeapon(1);
-    if (e.code === 'Digit3') switchWeapon(2);
-    if (e.code === 'KeyR') triggerReload();
-    if (e.code === 'KeyC') triggerSlideOrCrouch();
-    if (e.code === 'Space') handleJumpOrSlideCancel();
-  });
 
+    if (e.code === bindings.scoreboard || e.code === 'Tab') {
+      e.preventDefault();
+      document.getElementById('scoreboard-modal').style.display = 'flex';
+      updateScoreboardUI();
+      return;
+    }
+
+    if (!gameActive) return;
+
+    if (e.code === bindings.weapon1) switchWeapon(0);
+    if (e.code === bindings.weapon2) switchWeapon(1);
+    if (e.code === bindings.weapon3) switchWeapon(2);
+    if (e.code === bindings.reload) triggerReload();
+    if (e.code === bindings.slide) triggerSlideOrCrouch();
+    if (e.code === bindings.jump) handleJumpOrSlideCancel();
+  });
   window.addEventListener('keyup', e => {
     keys[e.code] = false;
     if (e.code === 'Tab') document.getElementById('scoreboard-modal').style.display = 'none';
@@ -728,8 +1094,13 @@
     const sens = player.isAds ? 0.0012 : 0.0021;
     player.yaw -= e.movementX * sens;
     player.pitch = Math.max(-1.48, Math.min(1.48, player.pitch - e.movementY * sens));
-  });
 
+    // Realistic Viewmodel Sway & Inertia Lag
+    const swayFactor = player.isAds ? 0.00004 : 0.00018;
+    player.swayX = Math.max(-0.045, Math.min(0.045, player.swayX - e.movementX * swayFactor));
+    player.swayY = Math.max(-0.035, Math.min(0.035, player.swayY + e.movementY * swayFactor));
+    player.swayRoll = Math.max(-0.055, Math.min(0.055, player.swayRoll - e.movementX * swayFactor * 2.2));
+  });
   document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas && gameActive) {
       // Allow controller-only play if gamepad connected; otherwise show pause menu on ESC
@@ -740,10 +1111,9 @@
   function switchWeapon(idx) {
     if (player.weaponIdx === idx || player.reloading > 0) return;
     player.weaponIdx = idx;
-    barrelMesh.scale.z = idx === 2 ? 1.55 : idx === 1 ? 1.15 : 1.0;
-    updateWeaponHUD();
+    player.drawTimer = 0.28;
+    updateWeaponVisuals();
   }
-
   function triggerReload() {
     const w = WEAPONS[player.weaponIdx];
     if (player.reloading > 0 || player.ammo[player.weaponIdx] === w.clipSize || player.reserve[player.weaponIdx] <= 0) return;
@@ -1147,7 +1517,8 @@
     // Muzzle flash & recoil kick
     muzzleLight.intensity = 3.2;
     setTimeout(() => muzzleLight.intensity = 0, 45);
-    weaponRig.position.z += 0.055;
+    player.recoilKickZ = w.recoil * 1.5;
+    player.recoilKickRotX = w.recoil * 1.25;
     player.pitch = Math.min(1.48, player.pitch + w.recoil * (player.isAds ? 0.65 : 1.0));
 
     // Build list of enemy hitboxes
@@ -1529,13 +1900,13 @@
         if (!w.auto) mouseDownL = false;
       }
 
-      // Movement Input Vector
-      let inX = pad.moveX + (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
-      let inZ = pad.moveZ + (keys['KeyS'] ? 1 : 0) - (keys['KeyW'] ? 1 : 0);
+      // Movement Input Vector (Using Dynamic Keybindings)
+      let inX = pad.moveX + (keys[bindings.right] ? 1 : 0) - (keys[bindings.left] ? 1 : 0);
+      let inZ = pad.moveZ + (keys[bindings.backward] ? 1 : 0) - (keys[bindings.forward] ? 1 : 0);
       const inLen = Math.hypot(inX, inZ);
       if (inLen > 1) { inX /= inLen; inZ /= inLen; }
 
-      if (keys['ShiftLeft'] && inZ < -0.2 && player.slideTimer <= 0 && !player.isAds) {
+      if (keys[bindings.sprint] && inZ < -0.2 && player.slideTimer <= 0 && !player.isAds) {
         player.stance = 'tac-sprint';
       } else if (player.stance === 'tac-sprint' && (inZ >= -0.2 || player.isAds)) {
         player.stance = 'stand';
@@ -1555,7 +1926,6 @@
         player.vx = (fwdX * (-inZ) + rightX * inX) * baseSpd;
         player.vz = (fwdZ * (-inZ) + rightZ * inX) * baseSpd;
       }
-
       // Gravity & Vertical Collision
       player.vy -= 22.0 * dt;
       let nextX = player.x + player.vx * dt;
@@ -1604,18 +1974,116 @@
       document.getElementById('sniper-scope').style.display = showScope ? 'block' : 'none';
       weaponRig.visible = !showScope;
 
-      // Centered ADS Weapon Alignment & Tac-Sprint Tilt
+      // --- DETAILED PROCEDURAL WEAPON & VIEWMODEL ANIMATIONS ---
+      const moving = Math.hypot(player.vx, player.vz);
+      const isSprinting = player.stance === 'tac-sprint' && moving > 2.0;
+      const isSliding = player.slideTimer > 0;
+      const onGround = player.onGround;
+
+      // Update walk cycle frequency based on movement speed
+      const cycleSpeed = isSprinting ? 14.8 : moving > 0.5 ? 9.6 : 2.0;
+      player.walkCycle += dt * cycleSpeed;
+
+      // 1. Idle Breathing Sway
+      const idleBreathingX = Math.sin(time * 1.8) * 0.0022;
+      const idleBreathingY = Math.cos(time * 3.6) * 0.0016;
+      const idleBreathingRoll = Math.sin(time * 1.8) * 0.0035;
+
+      // 2. Walking & Sprint Bobbing
+      let bobX = 0, bobY = 0, bobRoll = 0;
+      if (moving > 0.2 && onGround) {
+        if (isSprinting) {
+          bobX = Math.sin(player.walkCycle) * 0.038;
+          bobY = Math.abs(Math.cos(player.walkCycle)) * 0.034;
+          bobRoll = Math.sin(player.walkCycle) * 0.042;
+        } else {
+          bobX = Math.sin(player.walkCycle) * 0.015;
+          bobY = Math.abs(Math.cos(player.walkCycle)) * 0.012;
+          bobRoll = Math.sin(player.walkCycle) * 0.016;
+        }
+      }
+
+      // 3. Jump, Fall & Land Impact
+      if (!onGround) {
+        player.landDip += (0.028 - player.landDip) * 10 * dt;
+      } else if (player.prevVy < -4.0) {
+        const impact = Math.min(0.08, Math.abs(player.prevVy) * 0.0055);
+        player.landDip = impact;
+      }
+      player.prevVy = player.vy;
+      player.landDip += (0 - player.landDip) * 12 * dt;
+
+      // 4. Mouse Look Inertia & Sway Lag Recovery
+      player.swayX += (0 - player.swayX) * 12 * dt;
+      player.swayY += (0 - player.swayY) * 12 * dt;
+      player.swayRoll += (0 - player.swayRoll) * 12 * dt;
+
+      // 5. Draw / Weapon Swap Snappy Animation
+      let drawOffset = 0;
+      if (player.drawTimer > 0) {
+        player.drawTimer -= dt;
+        drawOffset = Math.sin((player.drawTimer / 0.28) * Math.PI) * -0.16;
+      }
+
+      // 6. Reload Animation Tilt & Dip
+      let reloadRotZ = 0, reloadDipY = 0;
+      if (player.reloading > 0) {
+        const reloadProg = 1 - (player.reloading / WEAPONS[player.weaponIdx].fireRate * 1.5);
+        reloadDipY = Math.sin(reloadProg * Math.PI) * -0.065;
+        reloadRotZ = Math.sin(reloadProg * Math.PI) * 0.45;
+      }
+
+      // 7. Recoil Kick Recovery
+      player.recoilKickZ += (0 - player.recoilKickZ) * 20 * dt;
+      player.recoilKickRotX += (0 - player.recoilKickRotX) * 20 * dt;
+
+      // Damping in ADS: reduce bobbing & sway by 92% for pin-point accuracy
+      const adsDamp = 1.0 - player.adsAlpha * 0.92;
+
+      // Precise Optical Centered ADS Coordinates per Weapon
       const hipX = 0.22, hipY = -0.19, hipZ = -0.36;
-      const adsX = 0.0, adsY = -0.078, adsZ = -0.26;
-      weaponRig.position.x = THREE.MathUtils.lerp(hipX, adsX, player.adsAlpha);
-      weaponRig.position.y = THREE.MathUtils.lerp(hipY, adsY, player.adsAlpha);
-      weaponRig.position.z += (THREE.MathUtils.lerp(hipZ, adsZ, player.adsAlpha) - weaponRig.position.z) * 14 * dt;
+      const adsX = 0.0;
+      const adsY = player.weaponIdx === 0 ? -0.125 : player.weaponIdx === 1 ? -0.076 : -0.108;
+      const adsZ = player.weaponIdx === 2 ? -0.22 : -0.24;
 
-      const sprintTiltX = player.stance === 'tac-sprint' ? 0.42 : 0;
-      const slideTiltZ = player.slideTimer > 0 ? 0.38 : 0;
-      weaponRig.rotation.x += (sprintTiltX - weaponRig.rotation.x) * 10 * dt;
-      weaponRig.rotation.z += (slideTiltZ - weaponRig.rotation.z) * 10 * dt;
+      const targetPosX = THREE.MathUtils.lerp(hipX, adsX, player.adsAlpha) + (idleBreathingX + bobX + player.swayX) * adsDamp;
+      const targetPosY = THREE.MathUtils.lerp(hipY, adsY, player.adsAlpha) + (idleBreathingY + bobY + player.swayY - player.landDip + drawOffset + reloadDipY) * adsDamp;
+      const targetPosZ = THREE.MathUtils.lerp(hipZ, adsZ, player.adsAlpha) + player.recoilKickZ;
 
+      weaponRig.position.x += (targetPosX - weaponRig.position.x) * 24 * dt;
+      weaponRig.position.y += (targetPosY - weaponRig.position.y) * 24 * dt;
+      weaponRig.position.z += (targetPosZ - weaponRig.position.z) * 24 * dt;
+
+      const sprintTiltX = isSprinting ? 0.52 : 0;
+      const sprintTiltY = isSprinting ? -0.26 : 0;
+      const sprintTiltZ = isSprinting ? 0.38 : 0;
+      const slideTiltZ = isSliding ? 0.42 : 0;
+
+      const targetRotX = (sprintTiltX - player.recoilKickRotX) * (1 - player.adsAlpha) + player.swayY * 1.5;
+      const targetRotY = (sprintTiltY) * (1 - player.adsAlpha) + player.swayX * 1.8;
+      const targetRotZ = (sprintTiltZ + slideTiltZ + reloadRotZ + (bobRoll + idleBreathingRoll + player.swayRoll) * adsDamp) * (1 - player.adsAlpha);
+
+      weaponRig.rotation.x += (targetRotX - weaponRig.rotation.x) * 16 * dt;
+      weaponRig.rotation.y += (targetRotY - weaponRig.rotation.y) * 16 * dt;
+      weaponRig.rotation.z += (targetRotZ - weaponRig.rotation.z) * 16 * dt;
+
+      // Functional Scopes: Sniper Scope (AWM) & Holographic Reticle (MK-18)
+      const showSniperScope = player.weaponIdx === 2 && player.adsAlpha > 0.82;
+      const sniperScopeEl = document.getElementById('sniper-scope');
+      if (sniperScopeEl) sniperScopeEl.style.display = showSniperScope ? 'block' : 'none';
+
+      const showArHolo = player.weaponIdx === 0 && player.adsAlpha > 0.35;
+      const arHoloEl = document.getElementById('ar-holo-scope');
+      if (arHoloEl) {
+        arHoloEl.style.display = showArHolo ? 'block' : 'none';
+        arHoloEl.style.opacity = Math.max(0, Math.min(1, (player.adsAlpha - 0.35) / 0.45));
+        const hParallaxX = player.swayX * 600;
+        const hParallaxY = player.swayY * 600;
+        arHoloEl.style.transform = `translate(calc(-50% + ${hParallaxX}px), calc(-50% + ${hParallaxY}px))`;
+      }
+
+      // Hide 3D weapon model only during full sniper scope
+      weaponRig.visible = !showSniperScope;
       // Update Shrines
       shrines.forEach(s => {
         s.orb.rotation.y += 2.2 * dt;
@@ -1734,8 +2202,32 @@
       updateRadar();
     }
 
-    // Update Actor 3D Meshes & Overhead Nametags
+    // Update Actor 3D Meshes, Movement Animations & Overhead Nametags
     actors.forEach(act => {
+      // Calculate speed and movement animation
+      const prevX = act.prevX ?? act.x;
+      const prevZ = act.prevZ ?? act.z;
+      const distMoved = Math.hypot(act.x - prevX, act.z - prevZ);
+      const spd = distMoved / Math.max(0.001, dt);
+      act.prevX = act.x;
+      act.prevZ = act.z;
+
+      act.animTime = (act.animTime || 0) + dt * Math.min(14, Math.max(1.5, spd * 2.2));
+
+      // Detailed third-person stride & running bob animation
+      if (spd > 0.3) {
+        act.legL.rotation.x = Math.sin(act.animTime) * 0.65;
+        act.legR.rotation.x = -Math.sin(act.animTime) * 0.65;
+        act.torso.position.y = 0.95 + Math.abs(Math.sin(act.animTime)) * 0.045;
+        act.torso.rotation.x = Math.min(0.25, spd * 0.025); // Forward run lean
+      } else {
+        // Idle breathing stance
+        act.legL.rotation.x *= 0.85;
+        act.legR.rotation.x *= 0.85;
+        act.torso.position.y = 0.95 + Math.sin(act.animTime * 0.5) * 0.012;
+        act.torso.rotation.x *= 0.85;
+      }
+
       act.group.position.set(act.x, act.y, act.z);
       act.group.rotation.y = act.yaw;
 
@@ -1757,134 +2249,3 @@
       }
     });
 
-    // Update Tracers
-    for (let i = tracers.length - 1; i >= 0; i--) {
-      tracers[i].life -= dt;
-      tracers[i].mat.opacity = Math.max(0, tracers[i].life / 0.08);
-      if (tracers[i].life <= 0) {
-        scene.remove(tracers[i].line);
-        tracers.splice(i, 1);
-      }
-    }
-
-    renderer.render(scene, camera);
-  }
-
-  // ============================================================================
-  // 11. MENU CONTROLS & GRAPHICS PRESETS
-  // ============================================================================
-  // --- FULLSCREEN CONTROLS ---
-  function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-  }
-
-  function toggleFullscreen() {
-    if (!isFullscreen()) {
-      const docEl = document.documentElement;
-      const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-      if (requestFS) {
-        requestFS.call(docEl).catch(err => {
-          console.warn('Fullscreen request failed:', err);
-        });
-      }
-    } else {
-      const exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-      if (exitFS) {
-        exitFS.call(document).catch(err => {
-          console.warn('Exit fullscreen failed:', err);
-        });
-      }
-    }
-  }
-
-  function updateFullscreenUI() {
-    const fs = isFullscreen();
-    const hudFsLabel = document.getElementById('hud-fs-label');
-    const menuFsLabel = document.getElementById('menu-fs-label');
-    if (hudFsLabel) hudFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
-    if (menuFsLabel) menuFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
-  }
-
-  document.addEventListener('fullscreenchange', updateFullscreenUI);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
-  document.addEventListener('mozfullscreenchange', updateFullscreenUI);
-
-  function deployMatch() {
-    ensureAudio();
-    player.name = (document.getElementById('player-callsign').value || 'AARYA-01').toUpperCase();
-    baseFov = parseFloat(document.getElementById('sl-fov').value);
-    const autoFs = document.getElementById('chk-auto-fs')?.checked;
-    if (autoFs && !isFullscreen()) {
-      toggleFullscreen();
-    }
-    document.getElementById('menu-overlay').style.display = 'none';
-    gameActive = true;
-    canvas.requestPointerLock?.();
-  }
-
-  function pauseGame() {
-    gameActive = false;
-    document.exitPointerLock?.();
-    document.getElementById('menu-overlay').style.display = 'flex';
-  }
-
-  document.getElementById('btn-deploy').addEventListener('click', deployMatch);
-  document.getElementById('btn-hud-fs')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFullscreen();
-  });
-  document.getElementById('btn-menu-fs')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFullscreen();
-  });
-
-  function setGameMode(mode) {
-    gameMode = mode;
-    document.getElementById('mode-tdm').classList.toggle('active', mode === 'tdm');
-    document.getElementById('mode-ffa').classList.toggle('active', mode === 'ffa');
-    document.getElementById('mode-1v1').classList.toggle('active', mode === '1v1');
-    const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
-    document.getElementById('score-cap').textContent = cap;
-    if (mode === '1v1') {
-      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
-    } else if (mode === 'tdm') {
-      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
-    } else {
-      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
-    }
-    syncBotsForMode();
-  }
-
-  document.getElementById('mode-tdm').addEventListener('click', () => setGameMode('tdm'));
-  document.getElementById('mode-ffa').addEventListener('click', () => setGameMode('ffa'));
-  document.getElementById('mode-1v1').addEventListener('click', () => setGameMode('1v1'));
-
-  document.querySelectorAll('[data-gfx]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-gfx]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const preset = btn.getAttribute('data-gfx');
-      if (preset === 'ultra') {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        sunLight.castShadow = true;
-      } else if (preset === 'high') {
-        renderer.setPixelRatio(1.25);
-        sunLight.castShadow = true;
-      } else {
-        renderer.setPixelRatio(1.0);
-        sunLight.castShadow = false;
-      }
-    });
-  });
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  requestAnimationFrame(animate);
-})();
-</script>
-</body>
-</html>
