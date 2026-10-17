@@ -2402,6 +2402,52 @@
     });
   });
 
+  // Mouse sensitivity slider listeners & persistence
+  const slMouseSens = document.getElementById('sl-mouse-sens');
+  const slAdsSens = document.getElementById('sl-ads-sens');
+  const slFov = document.getElementById('sl-fov');
+
+  try {
+    const savedMouse = localStorage.getItem('aegean_mouse_sens');
+    if (savedMouse && slMouseSens) {
+      slMouseSens.value = savedMouse;
+      const elVal = document.getElementById('val-mouse-sens');
+      if (elVal) elVal.textContent = savedMouse;
+    }
+    const savedAds = localStorage.getItem('aegean_ads_sens');
+    if (savedAds && slAdsSens) {
+      slAdsSens.value = savedAds;
+      const elVal = document.getElementById('val-ads-sens');
+      if (elVal) elVal.textContent = savedAds + 'x';
+    }
+    const savedFov = localStorage.getItem('aegean_fov');
+    if (savedFov && slFov) {
+      slFov.value = savedFov;
+      const elVal = document.getElementById('val-fov');
+      if (elVal) elVal.textContent = savedFov;
+      baseFov = parseFloat(savedFov);
+    }
+  } catch (err) {}
+
+  slMouseSens?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-mouse-sens');
+    if (elVal) elVal.textContent = e.target.value;
+    try { localStorage.setItem('aegean_mouse_sens', e.target.value); } catch (err) {}
+  });
+
+  slAdsSens?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-ads-sens');
+    if (elVal) elVal.textContent = e.target.value + 'x';
+    try { localStorage.setItem('aegean_ads_sens', e.target.value); } catch (err) {}
+  });
+
+  slFov?.addEventListener('input', e => {
+    const elVal = document.getElementById('val-fov');
+    if (elVal) elVal.textContent = e.target.value;
+    baseFov = parseFloat(e.target.value);
+    try { localStorage.setItem('aegean_fov', e.target.value); } catch (err) {}
+  });
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
