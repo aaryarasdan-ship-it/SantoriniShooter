@@ -230,7 +230,7 @@ window.addEventListener('error', function(e) {
     </div>
 
     <div class="match-header">
-      <div class="mode-title" id="hud-mode-label">4V4 TEAM DEATHMATCH — SANTORINI</div>
+      <div class="mode-title" id="hud-mode-label">4V4 TEAM DEATHMATCH — CALDERA (CS2 3-LANE)</div>
       <div class="score-row">
         <div class="team-block">
           <span class="team-name helios-col" id="lbl-team-a">TF HELIOS</span>
@@ -300,7 +300,7 @@ window.addEventListener('error', function(e) {
   <div class="menu-panel">
     <div>
       <div class="menu-title">AEGEAN STRIKE: PHOTOREAL</div>
-      <div class="menu-sub">Santorini Caldera • PeerJS WebRTC Multiplayer + CoD Movement</div>
+      <div class="menu-sub">Santorini Caldera (CS2 3-Lane Tactical Map) • PeerJS WebRTC + CoD Movement</div>
 
       <!-- MULTIPLAYER LOBBY -->
       <div class="section-box">
@@ -500,7 +500,7 @@ window.addEventListener('error', function(e) {
   pitchObj.add(rollObj);
   rollObj.add(camera);
   scene.add(yawObj);
-  yawObj.position.set(-28, 1.7, -28);
+  yawObj.position.set(0, 1.7, -58);
   yawObj.rotation.y = 0.7;
 
   function createEnvTexture() {
@@ -599,8 +599,27 @@ window.addEventListener('error', function(e) {
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.78 });
   const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.22, metalness: 0.9 });
 
+  // CS2 Tactical Props & Barricade Materials
+  function makeCrateMaterial() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#b47846'; ctx.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = '#8f562b';
+    for (let y = 0; y < 256; y += 32) ctx.fillRect(0, y, 256, 3);
+    ctx.strokeStyle = '#4a2c16'; ctx.lineWidth = 14;
+    ctx.beginPath(); ctx.rect(7, 7, 242, 242); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, 7); ctx.lineTo(249, 249); ctx.stroke();
+    const tex = new THREE.CanvasTexture(c);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, metalness: 0.08 });
+  }
+  const crateMat = makeCrateMaterial();
+  const containerBlue = new THREE.MeshStandardMaterial({ color: 0x1e3a5f, roughness: 0.42, metalness: 0.75 });
+  const containerRust = new THREE.MeshStandardMaterial({ color: 0x8b3a2b, roughness: 0.48, metalness: 0.65 });
+  const sandbagMat = new THREE.MeshStandardMaterial({ color: 0x9a835a, roughness: 0.92 });
+  const trimStoneMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.65 });
+
   // ============================================================================
-  // 3. SANTORINI MAP & COLLISION ARCHITECTURE
+  // 3. EXPANDED CS2-STYLE 3-LANE MAP & COLLISION ARCHITECTURE (148m x 148m)
   // ============================================================================
   const colliders = []; // { minX, maxX, minY, maxY, minZ, maxZ, mesh }
   const shootableMeshes = [];
@@ -623,47 +642,32 @@ window.addEventListener('error', function(e) {
     return mesh;
   }
 
-  // Island Floor & Surrounding Aegean Sea
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(92, 2, 92), cobbleMat);
+  // Tactical Crate Stacks (CS2 Bombsite / Chokepoint Headshot Cover)
+  function addCrate(x, y, z, w, h, d, mat = crateMat) {
+    return addBox(x, y + h / 2, z, w, h, d, mat, true);
+  }
+
+  // Expanded Island Cobblestone Floor & Aegean Ocean
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(148, 2, 148), cobbleMat);
   floor.position.set(0, -1, 0);
   floor.receiveShadow = true;
   scene.add(floor);
   shootableMeshes.push(floor);
 
-  const seaGeo = new THREE.PlaneGeometry(420, 420, 32, 32);
+  const seaGeo = new THREE.PlaneGeometry(550, 550, 32, 32);
   const seaMat = new THREE.MeshPhysicalMaterial({ color: 0x0369a1, roughness: 0.15, metalness: 0.1, clearcoat: 0.9 });
   const sea = new THREE.Mesh(seaGeo, seaMat);
   sea.rotation.x = -Math.PI / 2;
   sea.position.y = -3.2;
   scene.add(sea);
 
-  // Perimeter Parapets
-  addBox(0, 1.4, -45, 92, 2.8, 2, stuccoMat);
-  addBox(0, 1.4, 45, 92, 2.8, 2, stuccoMat);
-  addBox(-45, 1.4, 0, 2, 2.8, 92, stuccoMat);
-  addBox(45, 1.4, 0, 2, 2.8, 92, stuccoMat);
+  // Outer Fortress Boundary Parapets (5.5m high, keeps operators inside map)
+  addBox(0, 2.75, -73, 148, 5.5, 2.5, stuccoMat);
+  addBox(0, 2.75, 73, 148, 5.5, 2.5, stuccoMat);
+  addBox(-73, 2.75, 0, 2.5, 5.5, 148, stuccoMat);
+  addBox(73, 2.75, 0, 2.5, 5.5, 148, stuccoMat);
 
-  // Central Agora Tholos Rotunda
-  addBox(0, 0.35, 0, 12, 0.7, 12, marbleMat);
-  for (let i = 0; i < 8; i++) {
-    const ang = (i / 8) * Math.PI * 2;
-    const cx = Math.cos(ang) * 4.6, cz = Math.sin(ang) * 4.6;
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 5.2, 14), marbleMat);
-    col.position.set(cx, 3.3, cz);
-    col.castShadow = col.receiveShadow = true;
-    scene.add(col);
-    shootableMeshes.push(col);
-    colliders.push({ minX: cx - 0.5, maxX: cx + 0.5, minY: 0, maxY: 5.9, minZ: cz - 0.5, maxZ: cz + 0.5 });
-  }
-  const centerDome = new THREE.Mesh(new THREE.SphereGeometry(5.2, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
-  centerDome.position.set(0, 5.9, 0);
-  centerDome.castShadow = true;
-  scene.add(centerDome);
-  const spire = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.6, 8), goldMat);
-  spire.position.set(0, 11.5, 0);
-  scene.add(spire);
-
-  // Santorini Villas & Walkable Rooftop Terraces
+  // Helper: Large Santorini Villa with optional Blue Dome
   function buildVilla(x, z, w, h, d, hasDome = true) {
     addBox(x, h / 2, z, w, h, d, stuccoMat);
     if (hasDome) {
@@ -673,50 +677,199 @@ window.addEventListener('error', function(e) {
       scene.add(dm);
     }
   }
-  buildVilla(-20, -18, 11, 4.4, 10, true);
-  buildVilla(20, -18, 11, 4.4, 10, false);
-  buildVilla(-20, 18, 11, 4.4, 10, false);
-  buildVilla(20, 18, 11, 4.4, 10, true);
 
-  // Walkable Stairs & Mantle Blocks up to the Villas
+  // ============================================================================
+  // CS2 THREE-LANE PARTITION WALLS (Breaks sightlines, eliminates 360 crossfire)
+  // ============================================================================
+
+  // EAST DIVIDER COMPLEX (Separates Mid from A-Site & A-Long, X = +20 to +25)
+  // North segment (CT to Catwalk)
+  addBox(22, 3.2, -44, 4.5, 6.4, 38, stuccoMat);
+  // South segment (Catwalk to T-Spawn)
+  addBox(22, 3.2, 44, 4.5, 6.4, 38, stuccoMat);
+  // Mid-to-A Connector Building (Catwalk / Short A Archway at Z = 0)
+  addBox(22, 4.8, 0, 4.5, 3.2, 26, stuccoMat); // Header above archway
+  addBox(22, 1.6, -11, 4.5, 3.2, 4, stuccoMat); // Arch pillar north
+  addBox(22, 1.6, 11, 4.5, 3.2, 4, stuccoMat);  // Arch pillar south
+  // Elevated Catwalk along Mid (walkable ledge at y = 1.8m)
+  addBox(18.5, 0.9, 0, 2.5, 1.8, 18, marbleMat);
+  // Stairs leading up to Catwalk from Top Mid
+  for (let s = 0; s < 4; s++) {
+    addBox(18.5, 0.22 + s * 0.45, 11 + s * 1.0, 2.5, 0.45 + s * 0.45, 1.1, marbleMat);
+  }
+
+  // WEST DIVIDER COMPLEX (Separates Mid from B-Site & Apartments, X = -25 to -20)
+  // North segment (CT to Market)
+  addBox(-22, 3.2, -44, 4.5, 6.4, 38, stuccoMat);
+  // South segment (Market to T-Spawn)
+  addBox(-22, 3.2, 44, 4.5, 6.4, 38, stuccoMat);
+  // Mid-to-B Market Connector Building (Underpass / Market at Z = 0)
+  addBox(-22, 4.8, 0, 4.5, 3.2, 26, stuccoMat); // Header above Market door
+  addBox(-22, 1.6, -11, 4.5, 3.2, 4, stuccoMat); // Market pillar north
+  addBox(-22, 1.6, 11, 4.5, 3.2, 4, stuccoMat);  // Market pillar south
+  // Market interior partition
+  addBox(-32, 2.6, 0, 16, 5.2, 3.0, stuccoMat);
+
+  // ============================================================================
+  // ZONE 1: A-SITE & A-LONG (EAST WING: X = +26 to +71)
+  // ============================================================================
+  // A-Bombsite Raised Platform (Classic CS2 Site Layout)
+  addBox(46, 0.4, -36, 22, 0.8, 22, marbleMat);
+
+  // Grand Santorini Villa & Blue Dome behind A-Site (Backsite landmark)
+  buildVilla(48, -58, 22, 7.2, 15, true);
+
+  // A-Site CT Balcony / Heaven (Elevated vantage point overlooking site)
+  addBox(35, 2.6, -48, 8, 0.4, 6, marbleMat);
+  // Heaven stairs up from CT spawn
   for (let s = 0; s < 5; s++) {
-    addBox(-13.5 + s * 0.9, 0.45 + s * 0.85, -18, 1.2, 0.9 + s * 1.7, 3.4, marbleMat);
-    addBox(13.5 - s * 0.9, 0.45 + s * 0.85, 18, 1.2, 0.9 + s * 1.7, 3.4, marbleMat);
+    addBox(35, 0.25 + s * 0.5, -53 - s * 1.1, 3.2, 0.5 + s * 0.5, 1.2, marbleMat);
+  }
+  // Heaven safety railing
+  addBox(35, 3.2, -45.2, 8, 0.9, 0.3, woodMat, true);
+
+  // A-Site Tactical Crates (Headshot angles & default plant cover)
+  addCrate(44, 0.8, -32, 2.4, 2.2, 2.4, crateMat); // Triple stack base
+  addCrate(44, 3.0, -32, 1.8, 1.8, 1.8, crateMat); // Top box for mantle peek
+  addCrate(49, 0.8, -37, 2.2, 1.25, 3.2, containerBlue); // Default plant container
+  addCrate(39, 0.8, -39, 2.0, 1.15, 2.0, sandbagMat);    // Short-A peek sandbags
+  addCrate(53, 0.8, -42, 1.8, 1.2, 1.8, crateMat);       // Goose corner box
+
+  // A-Long Corridor (Long-range sniping & assault lane, X = +54 to +70)
+  // A-Long East Corner Wall & Building
+  addBox(62, 3.0, -10, 4.0, 6.0, 22, stuccoMat);
+  // A-Long Archway / Double Doors (Z = 22)
+  addBox(60, 4.6, 22, 16, 2.8, 4.0, stuccoMat); // Overhead lintel
+  addBox(54, 1.6, 22, 4.5, 3.2, 4.0, stuccoMat); // Left arch
+  addBox(67, 1.6, 22, 4.5, 3.2, 4.0, stuccoMat); // Right arch
+  // A-Long Pit (Z = 46 to 56): Lower defensive trench with chest-high parapet
+  addBox(63, 0.65, 42, 12, 1.3, 1.5, trimStoneMat);
+  addCrate(62, 0, 48, 2.2, 1.2, 2.2, crateMat);
+  addCrate(65, 0, 52, 2.0, 1.15, 2.0, sandbagMat);
+
+  // ============================================================================
+  // ZONE 2: MID / CENTRAL PLAZA & SNIPER ALLEY (X = -18 to +18)
+  // ============================================================================
+  // Central Agora Tholos Pavilion (Mid center landmark & soft cover)
+  addBox(0, 0.35, -2, 13, 0.7, 13, marbleMat);
+  for (let i = 0; i < 6; i++) {
+    const ang = (i / 6) * Math.PI * 2;
+    const cx = Math.cos(ang) * 4.8, cz = -2 + Math.sin(ang) * 4.8;
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 4.8, 12), marbleMat);
+    col.position.set(cx, 3.1, cz);
+    col.castShadow = col.receiveShadow = true;
+    scene.add(col);
+    shootableMeshes.push(col);
+    colliders.push({ minX: cx - 0.45, maxX: cx + 0.45, minY: 0, maxY: 5.5, minZ: cz - 0.45, maxZ: cz + 0.45 });
+  }
+  const midDome = new THREE.Mesh(new THREE.SphereGeometry(5.0, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+  midDome.position.set(0, 5.5, -2);
+  midDome.castShadow = true;
+  scene.add(midDome);
+
+  // CS2 "Xbox" Stacked Crates (Mid to Catwalk boost, Z = 2)
+  addCrate(11, 0, 2, 2.6, 2.0, 2.6, containerRust);
+  addCrate(11, 2.0, 2, 2.0, 1.0, 2.0, crateMat); // Second tier for easy mantle
+
+  // Mid Doors / T-Mid Chokepoint (Z = 24): Splitted double wood doors with sniper peek gap
+  addBox(-8, 2.2, 24, 9, 4.4, 1.8, woodMat);
+  addBox(8, 2.2, 24, 9, 4.4, 1.8, woodMat);
+  // Heavy lintel above Mid Doors
+  addBox(0, 4.8, 24, 25, 1.6, 2.2, stuccoMat);
+
+  // Top Mid Cover & Sandbags (Z = 38)
+  addCrate(-4, 0, 36, 3.2, 1.25, 1.2, sandbagMat);
+  addCrate(4, 0, 40, 2.2, 1.2, 2.2, crateMat);
+
+  // CT Sniper's Nest / Window (Z = -44, overlooking Mid from North)
+  addBox(0, 1.3, -45, 9, 2.6, 4.0, marbleMat); // Window sill & platform
+  addBox(-5.5, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat); // Window left wall
+  addBox(5.5, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat);  // Window right wall
+  addBox(0, 5.2, -45, 9, 1.6, 4.0, stuccoMat);       // Window header
+  // Stairs up to Window from CT spawn
+  for (let s = 0; s < 4; s++) {
+    addBox(0, 0.25 + s * 0.45, -50 - s * 1.0, 3.5, 0.45 + s * 0.45, 1.1, marbleMat);
   }
 
-  // Tactical Cover Walls, Crates & Mantle Ledges
-  const coverPositions = [
-    [-9, 1.0, -8, 4.5, 2.0, 1.2], [9, 1.0, 8, 4.5, 2.0, 1.2],
-    [-9, 1.0, 8, 1.2, 2.0, 4.5], [9, 1.0, -8, 1.2, 2.0, 4.5],
-    [0, 1.1, -24, 8, 2.2, 1.5], [0, 1.1, 24, 8, 2.2, 1.5],
-    [-26, 1.1, 0, 1.5, 2.2, 8], [26, 1.1, 0, 1.5, 2.2, 8],
-    [-14, 0.85, 0, 2.2, 1.7, 2.2], [14, 0.85, 0, 2.2, 1.7, 2.2]
-  ];
-  coverPositions.forEach(c => addBox(c[0], c[1], c[2], c[3], c[4], c[5], stuccoMat));
+  // ============================================================================
+  // ZONE 3: B-SITE & APARTMENTS / CLOSE-QUARTERS ALLEY (WEST WING: X = -71 to -26)
+  // ============================================================================
+  // B-Bombsite Sunken Temple Square (North-West, centered at X = -46, Z = -36)
+  addBox(-46, 0.4, -36, 22, 0.8, 22, marbleMat);
 
-  // Overhead Timber Pergolas (casts striped shadows)
-  for (let i = -5; i <= 5; i++) {
-    addBox(i * 1.1, 4.4, -12, 0.25, 0.2, 6, woodMat, false);
-    addBox(i * 1.1, 4.4, 12, 0.25, 0.2, 6, woodMat, false);
+  // Grand Santorini Villa & Blue Dome behind B-Site (Backsite landmark)
+  buildVilla(-48, -58, 22, 7.2, 15, true);
+
+  // 4 Classical Pillars on B-Site
+  [[-53, -43], [-39, -43], [-53, -29], [-39, -29]].forEach(([cx, cz]) => {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 4.6, 12), marbleMat);
+    col.position.set(cx, 3.0, cz);
+    col.castShadow = col.receiveShadow = true;
+    scene.add(col);
+    shootableMeshes.push(col);
+    colliders.push({ minX: cx - 0.42, maxX: cx + 0.42, minY: 0, maxY: 5.3, minZ: cz - 0.42, maxZ: cz + 0.42 });
+  });
+
+  // B-Site Tactical Cover (Crates, Car Barricade, Sandbags)
+  addCrate(-46, 0.8, -36, 3.0, 2.0, 3.0, containerBlue); // Center site container
+  addCrate(-42, 0.8, -32, 2.2, 1.2, 2.2, crateMat);      // Default plant box
+  addCrate(-52, 0.8, -38, 4.0, 1.3, 1.5, sandbagMat);    // Backsite sandbags
+  addCrate(-48, 0.8, -43, 2.0, 1.25, 2.0, crateMat);
+
+  // B-Apartments / Winding Urban Alleyway (X = -50 to -68, Z = 0 to 52)
+  // High enclosing alley walls (close-quarters shotgun & SMG arena)
+  addBox(-66, 3.2, 18, 3.5, 6.4, 46, stuccoMat); // Outer alley wall
+  addBox(-48, 3.2, 12, 3.5, 6.4, 30, stuccoMat); // Inner alley wall
+  // Apartment Archway & Window looking onto B-Site (Z = -18)
+  addBox(-54, 4.6, -18, 16, 2.8, 4.0, stuccoMat);
+  addBox(-47, 1.6, -18, 4.0, 3.2, 4.0, stuccoMat);
+  addBox(-61, 1.6, -18, 4.0, 3.2, 4.0, stuccoMat);
+  // Tactical cover in B-Alley
+  addCrate(-56, 0, 12, 2.2, 1.4, 2.2, crateMat);
+  addCrate(-56, 0, 32, 3.0, 1.25, 1.2, sandbagMat);
+  addCrate(-54, 0, 48, 2.2, 1.2, 2.2, crateMat);
+
+  // Overhead Timber Pergolas across B-Alley (casts realistic striped shadow patterns)
+  for (let i = -3; i <= 3; i++) {
+    addBox(-57, 4.6, 20 + i * 2.2, 8.5, 0.25, 0.35, woodMat, false);
   }
 
-  // Health & Shield Shrines
+  // ============================================================================
+  // ZONE 4: SPAWNS (CT / HELIOS & T / ICARUS)
+  // ============================================================================
+  // CT / HELIOS SPAWN (North, Z = -62 to -54, X = -30 to +30)
+  addBox(0, 1.0, -66, 28, 2.0, 2.5, trimStoneMat); // Spawn back barricade
+  addCrate(-12, 0, -62, 2.2, 1.2, 2.2, crateMat);
+  addCrate(12, 0, -62, 2.2, 1.2, 2.2, crateMat);
+
+  // T / ICARUS SPAWN (South, Z = +54 to +62, X = -30 to +30)
+  addBox(0, 1.0, 66, 28, 2.0, 2.5, trimStoneMat); // Spawn back barricade
+  addCrate(-12, 0, 62, 2.2, 1.2, 2.2, crateMat);
+  addCrate(12, 0, 62, 2.2, 1.2, 2.2, crateMat);
+
+  // ============================================================================
+  // TACTICAL HEALTH & SHIELD SHRINES (Contested Pickup Locations)
+  // ============================================================================
   const shrines = [];
-  [[-32, 0], [32, 0], [0, -34], [0, 34]].forEach(([sx, sz], idx) => {
+  [
+    [0, -2, 'sh'],      // Mid Pavilion Center (Shield - high risk/reward)
+    [46, -45, 'hp'],    // A-Site Backsite (Health)
+    [-46, -45, 'hp'],   // B-Site Backsite (Health)
+    [-22, 0, 'sh']      // Market Connector (Shield)
+  ].forEach(([sx, sz, type]) => {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.4, 16), marbleMat);
     base.position.set(sx, 0.2, sz);
     scene.add(base);
     const orbMat = new THREE.MeshStandardMaterial({
-      color: idx % 2 === 0 ? 0x22c55e : 0x38bdf8,
-      emissive: idx % 2 === 0 ? 0x15803d : 0x0284c7,
+      color: type === 'hp' ? 0x22c55e : 0x38bdf8,
+      emissive: type === 'hp' ? 0x15803d : 0x0284c7,
       emissiveIntensity: 0.8
     });
     const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), orbMat);
     orb.position.set(sx, 1.3, sz);
     scene.add(orb);
-    shrines.push({ x: sx, z: sz, type: idx % 2 === 0 ? 'hp' : 'sh', orb, cooldown: 0 });
+    shrines.push({ x: sx, z: sz, type, orb, cooldown: 0 });
   });
-
   // ============================================================================
   // 4. WEAPON DEFINITIONS & 3D VIEWMODEL RIG
   // ============================================================================
@@ -1058,7 +1211,7 @@ window.addEventListener('error', function(e) {
     id: 'local',
     name: 'AARYA-01',
     team: 'helios',
-    x: -28, y: 1.7, z: -28,
+    x: 0, y: 1.7, z: -58,
     vx: 0, vy: 0, vz: 0,
     yaw: 0.7, pitch: 0, roll: 0,
     hp: 100, shield: 50,
@@ -1300,17 +1453,24 @@ window.addEventListener('error', function(e) {
 
   function spawnPointForTeam(team) {
     if (gameMode === '1v1') {
-      const baseZ = team === 'helios' ? -32 : 32;
+      // 1v1 Aim Duel: Face-to-face across Mid with Mid Doors & Boxes between
+      const baseZ = team === 'helios' ? -36 : 36;
       return { x: 0, y: 1.7, z: baseZ };
     }
     if (gameMode === 'tdm') {
-      const baseZ = team === 'helios' ? -33 : 33;
-      const baseX = (Math.random() - 0.5) * 38;
+      // 4v4 TDM: Spawns in North (Helios CT) and South (Icarus T) bases
+      const baseZ = team === 'helios' ? -58 : 58;
+      const baseX = (Math.random() - 0.5) * 36;
       return { x: baseX, y: 1.7, z: baseZ + (Math.random() - 0.5) * 6 };
     }
-    const ang = Math.random() * Math.PI * 2;
-    const rad = 18 + Math.random() * 18;
-    return { x: Math.cos(ang) * rad, y: 1.7, z: Math.sin(ang) * rad };
+    // FFA: Spread across all 3 key tactical zones (A-Site, B-Site, Mid, A-Long, B-Alley)
+    const ffaSpawns = [
+      { x: 44, z: -34 }, { x: 62, z: 20 }, { x: 60, z: 46 },
+      { x: 0, z: -38 }, { x: 0, z: 12 }, { x: 0, z: 42 },
+      { x: -46, z: -34 }, { x: -56, z: 18 }, { x: -54, z: 48 },
+      { x: 0, z: -58 }, { x: 0, z: 58 }
+    ];
+    return ffaSpawns[Math.floor(Math.random() * ffaSpawns.length)];
   }
 
   function syncBotsForMode() {
@@ -1895,13 +2055,32 @@ window.addEventListener('error', function(e) {
 
   function updateRadar() {
     radarCtx.clearRect(0, 0, 148, 148);
-    const cx = 74, cy = 74, scale = 1.45;
+    const cx = 74, cy = 74, scale = 0.95; // Adjusted scale for 148m tactical map
 
     // Grid rings
     radarCtx.strokeStyle = 'rgba(56,189,248,0.22)';
     radarCtx.lineWidth = 1;
     [24, 48, 70].forEach(r => {
       radarCtx.beginPath(); radarCtx.arc(cx, cy, r, 0, Math.PI * 2); radarCtx.stroke();
+    });
+
+    // CS2 Tactical Site Labels on Radar (A, B, MID)
+    const sites = [
+      { name: 'A', x: 46, z: -36, col: '#f43f5e' },
+      { name: 'B', x: -46, z: -36, col: '#f43f5e' },
+      { name: 'MID', x: 0, z: -2, col: '#38bdf8' }
+    ];
+    sites.forEach(st => {
+      const dx = st.x - player.x, dz = st.z - player.z;
+      const rx = dx * Math.cos(-player.yaw) - dz * Math.sin(-player.yaw);
+      const rz = dx * Math.sin(-player.yaw) + dz * Math.cos(-player.yaw);
+      const px = cx + rx * scale;
+      const py = cy + rz * scale;
+      if (Math.hypot(px - cx, py - cy) < 68) {
+        radarCtx.fillStyle = st.col;
+        radarCtx.font = 'bold 11px Teko, sans-serif';
+        radarCtx.fillText(st.name, px - 4, py + 4);
+      }
     });
 
     // Shrines
@@ -2077,7 +2256,7 @@ window.addEventListener('error', function(e) {
         }
       }
       if (!collideX) {
-        player.x = Math.max(-43.5, Math.min(43.5, testX));
+        player.x = Math.max(-70.5, Math.min(70.5, testX));
       } else {
         player.vx = 0; // stop X velocity, allow Z velocity to slide freely along wall!
       }
@@ -2094,7 +2273,7 @@ window.addEventListener('error', function(e) {
         }
       }
       if (!collideZ) {
-        player.z = Math.max(-43.5, Math.min(43.5, testZ));
+        player.z = Math.max(-70.5, Math.min(70.5, testZ));
       } else {
         player.vz = 0; // stop Z velocity, allow X velocity to slide freely along wall!
       }
@@ -2263,10 +2442,26 @@ window.addEventListener('error', function(e) {
       if (mpRole !== 'client') {
         actors.forEach(act => {
           if (!act.isBot || act.hp <= 0) return;
+          const CS2_PATROL_NODES = [
+            // A-Lane & Site
+            { x: 46, z: -36 }, { x: 44, z: -20 }, { x: 60, z: -6 }, { x: 60, z: 20 }, { x: 62, z: 46 },
+            // Catwalk & Short A
+            { x: 26, z: -24 }, { x: 22, z: 0 }, { x: 22, z: 18 },
+            // Mid Lane
+            { x: 0, z: -44 }, { x: 0, z: -22 }, { x: 0, z: -2 }, { x: 0, z: 22 }, { x: 0, z: 42 },
+            // Market & B Connector
+            { x: -22, z: -4 }, { x: -22, z: -24 }, { x: -34, z: -26 },
+            // B-Lane & Apartments
+            { x: -46, z: -36 }, { x: -56, z: -26 }, { x: -58, z: 0 }, { x: -58, z: 26 }, { x: -54, z: 48 },
+            // Spawns
+            { x: -14, z: -58 }, { x: 14, z: -58 }, { x: -14, z: 58 }, { x: 14, z: 58 }
+          ];
+
           const dxWp = act.wpX - act.x, dzWp = act.wpZ - act.z;
-          if (Math.hypot(dxWp, dzWp) < 2.5) {
-            act.wpX = (Math.random() - 0.5) * 62;
-            act.wpZ = (Math.random() - 0.5) * 62;
+          if (Math.hypot(dxWp, dzWp) < 3.2) {
+            const nextNode = CS2_PATROL_NODES[Math.floor(Math.random() * CS2_PATROL_NODES.length)];
+            act.wpX = nextNode.x + (Math.random() - 0.5) * 4;
+            act.wpZ = nextNode.z + (Math.random() - 0.5) * 4;
           }
           const moveAng = Math.atan2(dxWp, dzWp);
           const nx = act.x + Math.sin(moveAng) * 5.2 * dt;
@@ -2279,7 +2474,10 @@ window.addEventListener('error', function(e) {
             }
           }
           if (!blocked) { act.x = nx; act.z = nz; }
-          else { act.wpX = (Math.random() - 0.5) * 55; act.wpZ = (Math.random() - 0.5) * 55; }
+          else {
+            const pick = CS2_PATROL_NODES[Math.floor(Math.random() * CS2_PATROL_NODES.length)];
+            act.wpX = pick.x; act.wpZ = pick.z;
+          }
 
           // Find closest enemy WITH CLEAR LINE OF SIGHT (No targeting through walls)
           let bestTarget = null, bestDist = 38;
@@ -2563,11 +2761,11 @@ window.addEventListener('error', function(e) {
     const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
     document.getElementById('score-cap').textContent = cap;
     if (mode === '1v1') {
-      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
+      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — MID AIM ARENA';
     } else if (mode === 'tdm') {
-      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
+      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — CALDERA (CS2 3-LANE)';
     } else {
-      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
+      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — CALDERA';
     }
     syncBotsForMode();
   }
