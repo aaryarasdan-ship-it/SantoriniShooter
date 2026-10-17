@@ -878,7 +878,6 @@
     muzzleLight.position.z = idx === 2 ? -0.98 : idx === 1 ? -0.66 : -0.62;
     updateWeaponHUD();
   }
-  updateWeaponVisuals();
   // ============================================================================
   // 5. PLAYER STATE, CALL OF DUTY MOVEMENT & BALLISTICS
   // ============================================================================
@@ -1010,6 +1009,7 @@
     slideDirX: 0, slideDirZ: 0,
     weaponIdx: 0,
     ammo: [30, 8, 5],
+    reserve: [150, 48, 25],
     fireCooldown: 0,
     reloading: 0,
     isAds: false,
@@ -1837,13 +1837,18 @@
 
   function updateWeaponHUD() {
     const w = WEAPONS[player.weaponIdx];
-    document.getElementById('hud-wname').textContent = w.name;
-    document.getElementById('hud-clip').textContent = player.ammo[player.weaponIdx];
-    document.getElementById('hud-res').textContent = player.reserve[player.weaponIdx];
+    const elName = document.getElementById('hud-wname');
+    if (elName) elName.textContent = w.name;
+    const elClip = document.getElementById('hud-clip');
+    if (elClip) elClip.textContent = player.ammo[player.weaponIdx];
+    const elRes = document.getElementById('hud-res');
+    if (elRes) elRes.textContent = (player.reserve ? player.reserve[player.weaponIdx] : w.maxRes);
     for (let i = 0; i < 3; i++) {
-      document.getElementById('slot-' + i).className = i === player.weaponIdx ? 'w-slot active' : 'w-slot';
+      const slot = document.getElementById('slot-' + i);
+      if (slot) slot.className = i === player.weaponIdx ? 'w-slot active' : 'w-slot';
     }
   }
+  updateWeaponVisuals();
 
   function updateScoreboardUI() {
     const tbody = document.getElementById('sb-tbody');
@@ -2249,3 +2254,141 @@
       }
     });
 
+    // Bullet Tracers Update
+    for (let i = tracers.length - 1; i >= 0; i--) {
+      tracers[i].life -= dt;
+      tracers[i].mat.opacity = Math.max(0, tracers[i].life / 0.08);
+      if (tracers[i].life <= 0) {
+        scene.remove(tracers[i].line);
+        tracers.splice(i, 1);
+      }
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+
+  // ============================================================================
+  // 11. MENU CONTROLS, FULLSCREEN & GRAPHICS PRESETS
+  // ============================================================================
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  }
+
+  function toggleFullscreen() {
+    if (!isFullscreen()) {
+      const docEl = document.documentElement;
+      const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (requestFS) {
+        requestFS.call(docEl).catch(err => {
+          console.warn('Fullscreen request failed:', err);
+        });
+      }
+    } else {
+      const exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (exitFS) {
+        exitFS.call(document).catch(err => {
+          console.warn('Exit fullscreen failed:', err);
+        });
+      }
+    }
+  }
+
+  function updateFullscreenUI() {
+    const fs = isFullscreen();
+    const hudFsLabel = document.getElementById('hud-fs-label');
+    const menuFsLabel = document.getElementById('menu-fs-label');
+    if (hudFsLabel) hudFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
+    if (menuFsLabel) menuFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
+  }
+
+  document.addEventListener('fullscreenchange', updateFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+  document.addEventListener('mozfullscreenchange', updateFullscreenUI);
+
+  function deployMatch() {
+    ensureAudio();
+    player.name = (document.getElementById('player-callsign').value || 'AARYA-01').toUpperCase();
+    baseFov = parseFloat(document.getElementById('sl-fov').value);
+    const autoFs = document.getElementById('chk-auto-fs')?.checked;
+    if (autoFs && !isFullscreen()) {
+      toggleFullscreen();
+    }
+    document.getElementById('menu-overlay').style.display = 'none';
+    gameActive = true;
+    canvas.requestPointerLock?.();
+  }
+
+  function pauseGame() {
+    gameActive = false;
+    document.exitPointerLock?.();
+    document.getElementById('menu-overlay').style.display = 'flex';
+  }
+
+  document.getElementById('btn-deploy').addEventListener('click', deployMatch);
+
+  document.getElementById('btn-hud-fs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFullscreen();
+  });
+
+  document.getElementById('btn-hud-menu')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pauseGame();
+  });
+
+  document.getElementById('btn-menu-fs')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFullscreen();
+  });
+
+  function setGameMode(mode) {
+    gameMode = mode;
+    document.getElementById('mode-tdm').classList.toggle('active', mode === 'tdm');
+    document.getElementById('mode-ffa').classList.toggle('active', mode === 'ffa');
+    document.getElementById('mode-1v1').classList.toggle('active', mode === '1v1');
+    const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
+    document.getElementById('score-cap').textContent = cap;
+    if (mode === '1v1') {
+      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
+    } else if (mode === 'tdm') {
+      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
+    } else {
+      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
+    }
+    syncBotsForMode();
+  }
+
+  document.getElementById('mode-tdm').addEventListener('click', () => setGameMode('tdm'));
+  document.getElementById('mode-ffa').addEventListener('click', () => setGameMode('ffa'));
+  document.getElementById('mode-1v1').addEventListener('click', () => setGameMode('1v1'));
+
+  document.querySelectorAll('[data-gfx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-gfx]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const preset = btn.getAttribute('data-gfx');
+      if (preset === 'ultra') {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        sunLight.castShadow = true;
+      } else if (preset === 'high') {
+        renderer.setPixelRatio(1.25);
+        sunLight.castShadow = true;
+      } else {
+        renderer.setPixelRatio(1.0);
+        sunLight.castShadow = false;
+      }
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
