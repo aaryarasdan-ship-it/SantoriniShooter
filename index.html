@@ -619,7 +619,7 @@ window.addEventListener('error', function(e) {
   const trimStoneMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.65 });
 
   // ============================================================================
-  // 3. EXPANDED CS2-STYLE 3-LANE MAP & COLLISION ARCHITECTURE (148m x 148m)
+  // 3. BALANCED CS2 TACTICAL MAP: LONG SIGHTLINES & DENSE CLOSE-QUARTERS
   // ============================================================================
   const colliders = []; // { minX, maxX, minY, maxY, minZ, maxZ, mesh }
   const shootableMeshes = [];
@@ -642,12 +642,21 @@ window.addEventListener('error', function(e) {
     return mesh;
   }
 
-  // Tactical Crate Stacks (CS2 Bombsite / Chokepoint Headshot Cover)
   function addCrate(x, y, z, w, h, d, mat = crateMat) {
     return addBox(x, y + h / 2, z, w, h, d, mat, true);
   }
 
-  // Expanded Island Cobblestone Floor & Aegean Ocean
+  function buildVilla(x, z, w, h, d, hasDome = true) {
+    addBox(x, h / 2, z, w, h, d, stuccoMat);
+    if (hasDome) {
+      const dm = new THREE.Mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.42, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+      dm.position.set(x, h, z);
+      dm.castShadow = true;
+      scene.add(dm);
+    }
+  }
+
+  // Island Cobblestone Ground & Ocean
   const floor = new THREE.Mesh(new THREE.BoxGeometry(148, 2, 148), cobbleMat);
   floor.position.set(0, -1, 0);
   floor.receiveShadow = true;
@@ -661,201 +670,169 @@ window.addEventListener('error', function(e) {
   sea.position.y = -3.2;
   scene.add(sea);
 
-  // Outer Fortress Boundary Parapets (5.5m high, keeps operators inside map)
+  // Outer Perimeter Fortress Walls
   addBox(0, 2.75, -73, 148, 5.5, 2.5, stuccoMat);
   addBox(0, 2.75, 73, 148, 5.5, 2.5, stuccoMat);
   addBox(-73, 2.75, 0, 2.5, 5.5, 148, stuccoMat);
   addBox(73, 2.75, 0, 2.5, 5.5, 148, stuccoMat);
 
-  // Helper: Large Santorini Villa with optional Blue Dome
-  function buildVilla(x, z, w, h, d, hasDome = true) {
-    addBox(x, h / 2, z, w, h, d, stuccoMat);
-    if (hasDome) {
-      const dm = new THREE.Mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.42, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
-      dm.position.set(x, h, z);
-      dm.castShadow = true;
-      scene.add(dm);
-    }
-  }
+  // ============================================================================
+  // SOLID LANE PARTITION BUILDINGS (Blocks diagonal crossfire across map)
+  // ============================================================================
+  // East Lane Divider (Separates Mid from A-Site / A-Long, X = +20 to +25)
+  addBox(22, 3.2, -45, 5.0, 6.4, 36, stuccoMat); // North sector
+  addBox(22, 3.2, 45, 5.0, 6.4, 36, stuccoMat);  // South sector
+
+  // West Lane Divider (Separates Mid from B-Apartments / B-Site, X = -25 to -20)
+  addBox(-22, 3.2, -45, 5.0, 6.4, 36, stuccoMat); // North sector
+  addBox(-22, 3.2, 45, 5.0, 6.4, 36, stuccoMat);  // South sector
 
   // ============================================================================
-  // CS2 THREE-LANE PARTITION WALLS (Breaks sightlines, eliminates 360 crossfire)
+  // 1. DENSE CLOSE-QUARTERS ZONE: B-APARTMENTS & MARKET (CQC & SHOTGUN ARENA)
   // ============================================================================
+  // Multi-Room B-Apartments (Enclosed winding hallways, 90° blind corners, 3.5m width)
+  // Outer & Inner Apartment Building Walls
+  addBox(-64, 3.2, 20, 3.5, 6.4, 48, stuccoMat); // West boundary wall
+  addBox(-46, 3.2, 16, 3.5, 6.4, 32, stuccoMat); // East hallway wall
+  addBox(-34, 3.2, 36, 3.5, 6.4, 28, stuccoMat); // Boiler room divider
 
-  // EAST DIVIDER COMPLEX (Separates Mid from A-Site & A-Long, X = +20 to +25)
-  // North segment (CT to Catwalk)
-  addBox(22, 3.2, -44, 4.5, 6.4, 38, stuccoMat);
-  // South segment (Catwalk to T-Spawn)
-  addBox(22, 3.2, 44, 4.5, 6.4, 38, stuccoMat);
-  // Mid-to-A Connector Building (Catwalk / Short A Archway at Z = 0)
-  addBox(22, 4.8, 0, 4.5, 3.2, 26, stuccoMat); // Header above archway
-  addBox(22, 1.6, -11, 4.5, 3.2, 4, stuccoMat); // Arch pillar north
-  addBox(22, 1.6, 11, 4.5, 3.2, 4, stuccoMat);  // Arch pillar south
-  // Elevated Catwalk along Mid (walkable ledge at y = 1.8m)
-  addBox(18.5, 0.9, 0, 2.5, 1.8, 18, marbleMat);
-  // Stairs leading up to Catwalk from Top Mid
-  for (let s = 0; s < 4; s++) {
-    addBox(18.5, 0.22 + s * 0.45, 11 + s * 1.0, 2.5, 0.45 + s * 0.45, 1.1, marbleMat);
-  }
+  // Interior Apartment Rooms & Doorways (Z = 0 to 45)
+  addBox(-55, 3.2, 32, 16, 6.4, 3.0, stuccoMat); // Room 1 cross-wall
+  addBox(-48, 1.6, 32, 3.5, 3.2, 3.0, stuccoMat); // Doorway pillar
+  addBox(-55, 3.2, 10, 16, 6.4, 3.0, stuccoMat); // Room 2 cross-wall
+  addBox(-60, 1.6, 10, 3.5, 3.2, 3.0, stuccoMat); // Doorway pillar
 
-  // WEST DIVIDER COMPLEX (Separates Mid from B-Site & Apartments, X = -25 to -20)
-  // North segment (CT to Market)
-  addBox(-22, 3.2, -44, 4.5, 6.4, 38, stuccoMat);
-  // South segment (Market to T-Spawn)
-  addBox(-22, 3.2, 44, 4.5, 6.4, 38, stuccoMat);
-  // Mid-to-B Market Connector Building (Underpass / Market at Z = 0)
-  addBox(-22, 4.8, 0, 4.5, 3.2, 26, stuccoMat); // Header above Market door
-  addBox(-22, 1.6, -11, 4.5, 3.2, 4, stuccoMat); // Market pillar north
-  addBox(-22, 1.6, 11, 4.5, 3.2, 4, stuccoMat);  // Market pillar south
-  // Market interior partition
-  addBox(-32, 2.6, 0, 16, 5.2, 3.0, stuccoMat);
+  // Apartment Rooftop & Ceiling Sections (Forces indoor close-quarters CQC)
+  addBox(-55, 5.8, 22, 18, 0.4, 38, woodMat, false);
+
+  // Interior Furniture, Wooden Barrels & Stacked CQC Boxes
+  addCrate(-52, 0, 42, 2.0, 1.2, 2.0, crateMat);
+  addCrate(-58, 0, 24, 2.2, 1.4, 2.2, containerRust);
+  addCrate(-50, 0, 18, 2.0, 1.2, 2.0, sandbagMat);
+  addCrate(-57, 0, 2, 2.2, 1.3, 2.2, crateMat);
+
+  // Market / Kitchen (Enclosed Mid-to-B Connector Room at Z = -4)
+  addBox(-22, 5.2, -4, 5.0, 2.4, 26, stuccoMat); // Roof over market door
+  addBox(-30, 3.0, -4, 14, 6.0, 3.0, stuccoMat); // Market shop counter wall
+  addBox(-28, 1.4, -4, 4.0, 2.8, 3.0, stuccoMat); // Market doorway
+  addCrate(-25, 0, -10, 2.2, 1.1, 3.2, crateMat); // Market counter box
 
   // ============================================================================
-  // ZONE 1: A-SITE & A-LONG (EAST WING: X = +26 to +71)
+  // 2. LONG SIGHTLINE ZONE: A-LONG (DEDICATED SNIPER & RIFLE ALLEY)
   // ============================================================================
-  // A-Bombsite Raised Platform (Classic CS2 Site Layout)
-  addBox(46, 0.4, -36, 22, 0.8, 22, marbleMat);
+  // Dedicated A-Long Corridor (Width 8m, Length 55m, enclosed on both sides)
+  addBox(64, 3.2, 12, 3.5, 6.4, 64, stuccoMat); // Outer East long wall
+  addBox(50, 3.2, 26, 3.5, 6.4, 36, stuccoMat); // Inner Long wall (cuts off site peek)
 
-  // Grand Santorini Villa & Blue Dome behind A-Site (Backsite landmark)
-  buildVilla(48, -58, 22, 7.2, 15, true);
+  // A-Long Doors (Chokepoint at Z = 24 with 3.4m doorway gap)
+  addBox(57, 4.8, 24, 14, 2.4, 3.5, stuccoMat); // Doorway header
+  addBox(52, 1.6, 24, 3.8, 3.2, 3.5, stuccoMat); // Left post
+  addBox(62, 1.6, 24, 3.8, 3.2, 3.5, stuccoMat); // Right post
 
-  // A-Site CT Balcony / Heaven (Elevated vantage point overlooking site)
-  addBox(35, 2.6, -48, 8, 0.4, 6, marbleMat);
-  // Heaven stairs up from CT spawn
-  for (let s = 0; s < 5; s++) {
-    addBox(35, 0.25 + s * 0.5, -53 - s * 1.1, 3.2, 0.5 + s * 0.5, 1.2, marbleMat);
-  }
-  // Heaven safety railing
-  addBox(35, 3.2, -45.2, 8, 0.9, 0.3, woodMat, true);
+  // "Pit" at Far End of Long (Z = 46 to 56): Lower defensive trench with chest-high parapet
+  addBox(57, 0.65, 46, 12, 1.3, 1.5, trimStoneMat);
+  addCrate(55, 0, 52, 2.2, 1.2, 2.2, crateMat);
+  addCrate(60, 0, 52, 2.0, 1.15, 2.0, sandbagMat);
 
-  // A-Site Tactical Crates (Headshot angles & default plant cover)
-  addCrate(44, 0.8, -32, 2.4, 2.2, 2.4, crateMat); // Triple stack base
-  addCrate(44, 3.0, -32, 1.8, 1.8, 1.8, crateMat); // Top box for mantle peek
-  addCrate(49, 0.8, -37, 2.2, 1.25, 3.2, containerBlue); // Default plant container
-  addCrate(39, 0.8, -39, 2.0, 1.15, 2.0, sandbagMat);    // Short-A peek sandbags
-  addCrate(53, 0.8, -42, 1.8, 1.2, 1.8, crateMat);       // Goose corner box
-
-  // A-Long Corridor (Long-range sniping & assault lane, X = +54 to +70)
-  // A-Long East Corner Wall & Building
-  addBox(62, 3.0, -10, 4.0, 6.0, 22, stuccoMat);
-  // A-Long Archway / Double Doors (Z = 22)
-  addBox(60, 4.6, 22, 16, 2.8, 4.0, stuccoMat); // Overhead lintel
-  addBox(54, 1.6, 22, 4.5, 3.2, 4.0, stuccoMat); // Left arch
-  addBox(67, 1.6, 22, 4.5, 3.2, 4.0, stuccoMat); // Right arch
-  // A-Long Pit (Z = 46 to 56): Lower defensive trench with chest-high parapet
-  addBox(63, 0.65, 42, 12, 1.3, 1.5, trimStoneMat);
-  addCrate(62, 0, 48, 2.2, 1.2, 2.2, crateMat);
-  addCrate(65, 0, 52, 2.0, 1.15, 2.0, sandbagMat);
+  // A-Long Corner Peek Wall (Z = -10)
+  addBox(56, 3.0, -10, 3.5, 6.0, 12, stuccoMat);
+  addCrate(53, 0, -14, 2.2, 1.25, 2.2, crateMat);
 
   // ============================================================================
-  // ZONE 2: MID / CENTRAL PLAZA & SNIPER ALLEY (X = -18 to +18)
+  // 3. BALANCED MID: SNIPER PEAKS & TIGHT CONNECTORS
   // ============================================================================
-  // Central Agora Tholos Pavilion (Mid center landmark & soft cover)
-  addBox(0, 0.35, -2, 13, 0.7, 13, marbleMat);
-  for (let i = 0; i < 6; i++) {
-    const ang = (i / 6) * Math.PI * 2;
-    const cx = Math.cos(ang) * 4.8, cz = -2 + Math.sin(ang) * 4.8;
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 4.8, 12), marbleMat);
-    col.position.set(cx, 3.1, cz);
-    col.castShadow = col.receiveShadow = true;
-    scene.add(col);
-    shootableMeshes.push(col);
-    colliders.push({ minX: cx - 0.45, maxX: cx + 0.45, minY: 0, maxY: 5.5, minZ: cz - 0.45, maxZ: cz + 0.45 });
-  }
-  const midDome = new THREE.Mesh(new THREE.SphereGeometry(5.0, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
-  midDome.position.set(0, 5.5, -2);
-  midDome.castShadow = true;
-  scene.add(midDome);
+  // Central Dividing Buildings in Mid (Shrinks open space into structured alleys)
+  addBox(-8, 3.0, -8, 4.0, 6.0, 22, stuccoMat);  // Mid-West partition
+  addBox(8, 3.0, -8, 4.0, 6.0, 22, stuccoMat);   // Mid-East partition
 
-  // CS2 "Xbox" Stacked Crates (Mid to Catwalk boost, Z = 2)
-  addCrate(11, 0, 2, 2.6, 2.0, 2.6, containerRust);
-  addCrate(11, 2.0, 2, 2.0, 1.0, 2.0, crateMat); // Second tier for easy mantle
+  // Mid Doors (Z = 22): Narrow 3.5m sniper gap between Top Mid and Mid Center
+  addBox(-6.5, 2.2, 22, 6.5, 4.4, 1.8, woodMat);
+  addBox(6.5, 2.2, 22, 6.5, 4.4, 1.8, woodMat);
+  addBox(0, 4.8, 22, 20, 1.6, 2.0, stuccoMat);
 
-  // Mid Doors / T-Mid Chokepoint (Z = 24): Splitted double wood doors with sniper peek gap
-  addBox(-8, 2.2, 24, 9, 4.4, 1.8, woodMat);
-  addBox(8, 2.2, 24, 9, 4.4, 1.8, woodMat);
-  // Heavy lintel above Mid Doors
-  addBox(0, 4.8, 24, 25, 1.6, 2.2, stuccoMat);
-
-  // Top Mid Cover & Sandbags (Z = 38)
-  addCrate(-4, 0, 36, 3.2, 1.25, 1.2, sandbagMat);
-  addCrate(4, 0, 40, 2.2, 1.2, 2.2, crateMat);
-
-  // CT Sniper's Nest / Window (Z = -44, overlooking Mid from North)
-  addBox(0, 1.3, -45, 9, 2.6, 4.0, marbleMat); // Window sill & platform
-  addBox(-5.5, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat); // Window left wall
-  addBox(5.5, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat);  // Window right wall
-  addBox(0, 5.2, -45, 9, 1.6, 4.0, stuccoMat);       // Window header
-  // Stairs up to Window from CT spawn
-  for (let s = 0; s < 4; s++) {
-    addBox(0, 0.25 + s * 0.45, -50 - s * 1.0, 3.5, 0.45 + s * 0.45, 1.1, marbleMat);
-  }
-
-  // ============================================================================
-  // ZONE 3: B-SITE & APARTMENTS / CLOSE-QUARTERS ALLEY (WEST WING: X = -71 to -26)
-  // ============================================================================
-  // B-Bombsite Sunken Temple Square (North-West, centered at X = -46, Z = -36)
-  addBox(-46, 0.4, -36, 22, 0.8, 22, marbleMat);
-
-  // Grand Santorini Villa & Blue Dome behind B-Site (Backsite landmark)
-  buildVilla(-48, -58, 22, 7.2, 15, true);
-
-  // 4 Classical Pillars on B-Site
-  [[-53, -43], [-39, -43], [-53, -29], [-39, -29]].forEach(([cx, cz]) => {
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 4.6, 12), marbleMat);
+  // Mid Center Agora Pavilion & Fountain
+  addBox(0, 0.35, -2, 9, 0.7, 9, marbleMat);
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2;
+    const cx = Math.cos(ang) * 3.4, cz = -2 + Math.sin(ang) * 3.4;
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 4.6, 10), marbleMat);
     col.position.set(cx, 3.0, cz);
     col.castShadow = col.receiveShadow = true;
     scene.add(col);
     shootableMeshes.push(col);
     colliders.push({ minX: cx - 0.42, maxX: cx + 0.42, minY: 0, maxY: 5.3, minZ: cz - 0.42, maxZ: cz + 0.42 });
-  });
+  }
 
-  // B-Site Tactical Cover (Crates, Car Barricade, Sandbags)
-  addCrate(-46, 0.8, -36, 3.0, 2.0, 3.0, containerBlue); // Center site container
-  addCrate(-42, 0.8, -32, 2.2, 1.2, 2.2, crateMat);      // Default plant box
-  addCrate(-52, 0.8, -38, 4.0, 1.3, 1.5, sandbagMat);    // Backsite sandbags
-  addCrate(-48, 0.8, -43, 2.0, 1.25, 2.0, crateMat);
+  // Xbox Crate Stack (Mid to Catwalk boost)
+  addCrate(11, 0, 2, 2.6, 2.0, 2.6, containerRust);
+  addCrate(11, 2.0, 2, 2.0, 1.0, 2.0, crateMat);
 
-  // B-Apartments / Winding Urban Alleyway (X = -50 to -68, Z = 0 to 52)
-  // High enclosing alley walls (close-quarters shotgun & SMG arena)
-  addBox(-66, 3.2, 18, 3.5, 6.4, 46, stuccoMat); // Outer alley wall
-  addBox(-48, 3.2, 12, 3.5, 6.4, 30, stuccoMat); // Inner alley wall
-  // Apartment Archway & Window looking onto B-Site (Z = -18)
-  addBox(-54, 4.6, -18, 16, 2.8, 4.0, stuccoMat);
-  addBox(-47, 1.6, -18, 4.0, 3.2, 4.0, stuccoMat);
-  addBox(-61, 1.6, -18, 4.0, 3.2, 4.0, stuccoMat);
-  // Tactical cover in B-Alley
-  addCrate(-56, 0, 12, 2.2, 1.4, 2.2, crateMat);
-  addCrate(-56, 0, 32, 3.0, 1.25, 1.2, sandbagMat);
-  addCrate(-54, 0, 48, 2.2, 1.2, 2.2, crateMat);
+  // CT Sniper's Nest / Window (Z = -44, overlooking Mid corridor from North)
+  addBox(0, 1.3, -45, 8.5, 2.6, 4.0, marbleMat); // Window sill
+  addBox(-5.2, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat);
+  addBox(5.2, 3.4, -45, 2.5, 4.2, 4.0, stuccoMat);
+  addBox(0, 5.2, -45, 8.5, 1.6, 4.0, stuccoMat);
+  for (let s = 0; s < 4; s++) {
+    addBox(0, 0.25 + s * 0.45, -50 - s * 1.0, 3.2, 0.45 + s * 0.45, 1.1, marbleMat);
+  }
 
-  // Overhead Timber Pergolas across B-Alley (casts realistic striped shadow patterns)
-  for (let i = -3; i <= 3; i++) {
-    addBox(-57, 4.6, 20 + i * 2.2, 8.5, 0.25, 0.35, woodMat, false);
+  // Catwalk / Short-A Tunnel (Z = -12 to +8, X = 18 to 26)
+  addBox(22, 4.8, 0, 5.0, 3.2, 26, stuccoMat); // Tunnel roof
+  addBox(18.5, 0.9, 0, 2.5, 1.8, 18, marbleMat); // Elevated Catwalk ledge
+  for (let s = 0; s < 4; s++) {
+    addBox(18.5, 0.22 + s * 0.45, 11 + s * 1.0, 2.5, 0.45 + s * 0.45, 1.1, marbleMat);
   }
 
   // ============================================================================
-  // ZONE 4: SPAWNS (CT / HELIOS & T / ICARUS)
+  // 4. BOMBSITES: A-SITE & B-SITE (SEGMENTED TACTICAL SQUARES)
   // ============================================================================
-  // CT / HELIOS SPAWN (North, Z = -62 to -54, X = -30 to +30)
-  addBox(0, 1.0, -66, 28, 2.0, 2.5, trimStoneMat); // Spawn back barricade
-  addCrate(-12, 0, -62, 2.2, 1.2, 2.2, crateMat);
-  addCrate(12, 0, -62, 2.2, 1.2, 2.2, crateMat);
+  // A-SITE (North-East: X = +42, Z = -36)
+  addBox(42, 0.4, -36, 18, 0.8, 18, marbleMat);
+  buildVilla(44, -58, 20, 7.2, 14, true); // Backsite Villa
+  addBox(32, 2.6, -48, 7, 0.4, 5, marbleMat); // Heaven balcony
+  for (let s = 0; s < 5; s++) {
+    addBox(32, 0.25 + s * 0.5, -53 - s * 1.1, 2.8, 0.5 + s * 0.5, 1.1, marbleMat);
+  }
+  addCrate(40, 0.8, -32, 2.2, 2.2, 2.2, crateMat); // Triple stack
+  addCrate(45, 0.8, -38, 2.2, 1.25, 3.2, containerBlue); // Default plant
+  addCrate(36, 0.8, -40, 2.0, 1.15, 2.0, sandbagMat);
 
-  // T / ICARUS SPAWN (South, Z = +54 to +62, X = -30 to +30)
-  addBox(0, 1.0, 66, 28, 2.0, 2.5, trimStoneMat); // Spawn back barricade
-  addCrate(-12, 0, 62, 2.2, 1.2, 2.2, crateMat);
-  addCrate(12, 0, 62, 2.2, 1.2, 2.2, crateMat);
+  // B-SITE (North-West: X = -42, Z = -36)
+  addBox(-42, 0.4, -36, 18, 0.8, 18, marbleMat);
+  buildVilla(-44, -58, 20, 7.2, 14, true); // Backsite Villa
+  // 4 Classical Pillars on B-Site
+  [[-48, -42], [-36, -42], [-48, -30], [-36, -30]].forEach(([cx, cz]) => {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 4.4, 10), marbleMat);
+    col.position.set(cx, 2.9, cz);
+    col.castShadow = col.receiveShadow = true;
+    scene.add(col);
+    shootableMeshes.push(col);
+    colliders.push({ minX: cx - 0.42, maxX: cx + 0.42, minY: 0, maxY: 5.1, minZ: cz - 0.42, maxZ: cz + 0.42 });
+  });
+  addCrate(-42, 0.8, -36, 2.8, 2.0, 2.8, containerBlue);
+  addCrate(-38, 0.8, -32, 2.0, 1.2, 2.0, crateMat);
+  addCrate(-48, 0.8, -38, 3.5, 1.3, 1.4, sandbagMat);
 
   // ============================================================================
-  // TACTICAL HEALTH & SHIELD SHRINES (Contested Pickup Locations)
+  // 5. SPAWN STAGING COURTYARDS
   // ============================================================================
+  // CT / HELIOS SPAWN (North, Z = -62 to -54)
+  addBox(0, 1.0, -66, 26, 2.0, 2.5, trimStoneMat);
+  addCrate(-10, 0, -62, 2.2, 1.2, 2.2, crateMat);
+  addCrate(10, 0, -62, 2.2, 1.2, 2.2, crateMat);
+
+  // T / ICARUS SPAWN (South, Z = +54 to +62)
+  addBox(0, 1.0, 66, 26, 2.0, 2.5, trimStoneMat);
+  addCrate(-10, 0, 62, 2.2, 1.2, 2.2, crateMat);
+  addCrate(10, 0, 62, 2.2, 1.2, 2.2, crateMat);
+
+  // Health & Shield Shrines
   const shrines = [];
   [
-    [0, -2, 'sh'],      // Mid Pavilion Center (Shield - high risk/reward)
-    [46, -45, 'hp'],    // A-Site Backsite (Health)
-    [-46, -45, 'hp'],   // B-Site Backsite (Health)
-    [-22, 0, 'sh']      // Market Connector (Shield)
+    [0, -2, 'sh'],      // Mid Pavilion Center (Shield)
+    [42, -44, 'hp'],    // A-Site Backsite (Health)
+    [-42, -44, 'hp'],   // B-Site Backsite (Health)
+    [-52, 20, 'sh']     // B-Apartments Living Room (Shield)
   ].forEach(([sx, sz, type]) => {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.4, 16), marbleMat);
     base.position.set(sx, 0.2, sz);
@@ -1212,12 +1189,14 @@ window.addEventListener('error', function(e) {
     name: 'AARYA-01',
     team: 'helios',
     x: 0, y: 1.7, z: -58,
+    feetY: 0,
+    eyeHeight: 1.7,
     vx: 0, vy: 0, vz: 0,
     yaw: 0.7, pitch: 0, roll: 0,
     hp: 100, shield: 50,
     kills: 0, deaths: 0,
     onGround: true,
-    stance: 'stand', // 'stand' | 'crouch' | 'slide' | 'tac-sprint' | 'mantle'
+    stance: 'stand', // 'stand' | 'crouch' | 'slide' | 'tac-sprint'
     slideTimer: 0,
     slideDirX: 0, slideDirZ: 0,
     weaponIdx: 0,
@@ -1369,32 +1348,11 @@ window.addEventListener('error', function(e) {
       player.stance = 'stand';
       return;
     }
-    if (tryMantle()) return;
+    // Clean, natural jump without teleporting into walls!
     if (player.onGround) {
-      player.vy = 8.4;
+      player.vy = 8.6;
       player.onGround = false;
     }
-  }
-
-  function tryMantle() {
-    const fwdX = -Math.sin(player.yaw), fwdZ = -Math.cos(player.yaw);
-    const probeX = player.x + fwdX * 0.95;
-    const probeZ = player.z + fwdZ * 0.95;
-    const feetY = player.y - 1.5;
-    for (const c of colliders) {
-      if (probeX >= c.minX && probeX <= c.maxX && probeZ >= c.minZ && probeZ <= c.maxZ) {
-        const ledgeDiff = c.maxY - feetY;
-        if (ledgeDiff > 0.55 && ledgeDiff <= 2.35) {
-          player.y = c.maxY + 1.55;
-          player.x = probeX;
-          player.z = probeZ;
-          player.vy = 2.0;
-          document.getElementById('hud-stance').textContent = 'MANTLING';
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   // ============================================================================
@@ -2229,63 +2187,101 @@ window.addEventListener('error', function(e) {
         }
       }
 
-      // Gravity & Vertical Ground Height
-      player.vy -= 22.0 * dt;
-      let nextY = player.y + player.vy * dt;
-      const eyeHeight = player.slideTimer > 0 ? 0.85 : player.stance === 'crouch' ? 1.12 : 1.7;
-      let groundY = 0;
+      // 1. Smooth Eye Height Transition based on Stance (Feet remain anchored)
+      const targetEyeHeight = player.slideTimer > 0 ? 0.85 : (player.stance === 'crouch' ? 1.15 : 1.7);
+      player.eyeHeight += (targetEyeHeight - player.eyeHeight) * Math.min(1.0, 18.0 * dt);
 
-      // Check ground support
+      // 2. Vertical Physics (Gravity & Ground Support)
+      player.vy -= 22.0 * dt;
+      let nextFeetY = player.feetY + player.vy * dt;
+      let groundY = 0; // Default floor elevation
+
+      // Check ground support underneath player's feet footprint
+      const pr = 0.36; // Player collision radius
       for (const c of colliders) {
-        if (player.x + 0.35 > c.minX && player.x - 0.35 < c.maxX && player.z + 0.35 > c.minZ && player.z - 0.35 < c.maxZ) {
-          if (player.y - eyeHeight >= c.maxY - 0.35) {
+        if (player.x + pr > c.minX && player.x - pr < c.maxX && player.z + pr > c.minZ && player.z - pr < c.maxZ) {
+          // If player's feet are above or resting on the surface
+          if (player.feetY >= c.maxY - 0.25) {
             groundY = Math.max(groundY, c.maxY);
           }
         }
       }
 
-      // Independent Axis Collision & Wall-Sliding (X-axis test)
+      // Resolve landing on floor or block
+      if (nextFeetY <= groundY) {
+        nextFeetY = groundY;
+        player.vy = 0;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
+      }
+      player.feetY = nextFeetY;
+      player.y = player.feetY + player.eyeHeight;
+
+      // 3. Horizontal Wall & Block Collision (Independent X and Z with Wall-Sliding)
+      const stepClearance = 0.22; // Allows walking over small curbs & steps
+      const bodyBottom = player.feetY + stepClearance;
+      const bodyTop = player.feetY + player.eyeHeight;
+
+      // X-Axis Test
       let testX = player.x + player.vx * dt;
       let collideX = false;
       for (const c of colliders) {
-        if (testX + 0.38 > c.minX && testX - 0.38 < c.maxX && player.z + 0.35 > c.minZ && player.z - 0.35 < c.maxZ) {
-          if (player.y - eyeHeight < c.maxY - 0.35 && nextY > c.minY) {
+        if (c.maxY > bodyBottom && c.minY < bodyTop) {
+          if (testX + pr > c.minX && testX - pr < c.maxX && player.z + pr > c.minZ && player.z - pr < c.maxZ) {
             collideX = true;
             break;
           }
         }
       }
       if (!collideX) {
-        player.x = Math.max(-70.5, Math.min(70.5, testX));
+        player.x = Math.max(-71, Math.min(71, testX));
       } else {
-        player.vx = 0; // stop X velocity, allow Z velocity to slide freely along wall!
+        player.vx = 0; // Wall slide along Z
       }
 
-      // Independent Axis Collision & Wall-Sliding (Z-axis test)
+      // Z-Axis Test
       let testZ = player.z + player.vz * dt;
       let collideZ = false;
       for (const c of colliders) {
-        if (player.x + 0.35 > c.minX && player.x - 0.35 < c.maxX && testZ + 0.38 > c.minZ && testZ - 0.38 < c.maxZ) {
-          if (player.y - eyeHeight < c.maxY - 0.35 && nextY > c.minY) {
+        if (c.maxY > bodyBottom && c.minY < bodyTop) {
+          if (player.x + pr > c.minX && player.x - pr < c.maxX && testZ + pr > c.minZ && testZ - pr < c.maxZ) {
             collideZ = true;
             break;
           }
         }
       }
       if (!collideZ) {
-        player.z = Math.max(-70.5, Math.min(70.5, testZ));
+        player.z = Math.max(-71, Math.min(71, testZ));
       } else {
-        player.vz = 0; // stop Z velocity, allow X velocity to slide freely along wall!
+        player.vz = 0; // Wall slide along X
       }
 
-      if (nextY - eyeHeight <= groundY) {
-        nextY = groundY + eyeHeight;
-        player.vy = 0;
-        player.onGround = true;
-      } else {
-        player.onGround = false;
+      // 4. Anti-Stuck Depenetration Failsafe
+      for (const c of colliders) {
+        if (c.maxY > player.feetY + 0.05 && c.minY < bodyTop - 0.1) {
+          if (player.x + 0.32 > c.minX && player.x - 0.32 < c.maxX && player.z + 0.32 > c.minZ && player.z - 0.32 < c.maxZ) {
+            if (player.feetY >= c.maxY - 0.45) {
+              // Pop cleanly onto top surface
+              player.feetY = c.maxY;
+              player.y = player.feetY + player.eyeHeight;
+              player.vy = 0;
+              player.onGround = true;
+            } else {
+              // Push out along shortest horizontal axis
+              const pL = (player.x + 0.32) - c.minX;
+              const pR = c.maxX - (player.x - 0.32);
+              const pB = (player.z + 0.32) - c.minZ;
+              const pF = c.maxZ - (player.z - 0.32);
+              const mP = Math.min(pL, pR, pB, pF);
+              if (mP === pL) player.x = c.minX - 0.33;
+              else if (mP === pR) player.x = c.maxX + 0.33;
+              else if (mP === pB) player.z = c.minZ - 0.33;
+              else player.z = c.maxZ + 0.33;
+            }
+          }
+        }
       }
-      player.y = nextY;
 
       // Camera Transforms & Dynamic FOV
       yawObj.position.set(player.x, player.y, player.z);
