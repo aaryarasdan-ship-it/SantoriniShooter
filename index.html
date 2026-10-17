@@ -82,26 +82,7 @@
   .scope-center-dot { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: #f43f5e; transform: translate(-50%, -50%); box-shadow: 0 0 8px #f43f5e, 0 0 16px #f43f5e; }
   .scope-range-text { position: absolute; bottom: 18%; right: 28%; font-family: 'Teko', sans-serif; font-size: 19px; color: rgba(244,63,94,0.75); letter-spacing: 2px; }
 
-  /* AR HOLOGRAPHIC RETICLE OVERLAY */
-  #ar-holo-scope {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 140px; height: 140px; pointer-events: none; z-index: 14; display: none;
-    opacity: 0; transition: opacity 0.12s ease;
-  }
-  .holo-circle {
-    position: absolute; inset: 26px; border-radius: 50%;
-    border: 2px solid rgba(56,189,248,0.85);
-    box-shadow: 0 0 12px rgba(56,189,248,0.5), inset 0 0 10px rgba(56,189,248,0.3);
-  }
-  .holo-tick-t { position: absolute; top: 12px; left: 50%; width: 2px; height: 14px; background: #38bdf8; transform: translateX(-50%); box-shadow: 0 0 6px #38bdf8; }
-  .holo-tick-b { position: absolute; bottom: 12px; left: 50%; width: 2px; height: 14px; background: #38bdf8; transform: translateX(-50%); box-shadow: 0 0 6px #38bdf8; }
-  .holo-tick-l { position: absolute; left: 12px; top: 50%; width: 14px; height: 2px; background: #38bdf8; transform: translateY(-50%); box-shadow: 0 0 6px #38bdf8; }
-  .holo-tick-r { position: absolute; right: 12px; top: 50%; width: 14px; height: 2px; background: #38bdf8; transform: translateY(-50%); box-shadow: 0 0 6px #38bdf8; }
-  .holo-center-dot {
-    position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%;
-    background: #f43f5e; transform: translate(-50%, -50%);
-    box-shadow: 0 0 8px #f43f5e, 0 0 14px #f43f5e;
-  }
+
 
   /* KEYBINDINGS PANEL */
   .kb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
@@ -189,14 +170,7 @@
     <div class="scope-range-text">RANGE: 400M • .338 CAL</div>
   </div>
 </div>
-<div id="ar-holo-scope">
-  <div class="holo-circle"></div>
-  <div class="holo-tick-t"></div>
-  <div class="holo-tick-b"></div>
-  <div class="holo-tick-l"></div>
-  <div class="holo-tick-r"></div>
-  <div class="holo-center-dot"></div>
-</div>
+
 <div id="medal-feed">HEADSHOT +150</div>
 
 <div id="center-reticle">
@@ -759,18 +733,66 @@
   const rcvBuffer = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.22, 10), matGunSteel);
   rcvBuffer.rotation.x = Math.PI / 2;
   rcvBuffer.position.set(0, 0.03, 0.22);
-  // Holographic Sight Mount & Glass Window
-  const holoBase = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.02, 0.12), matGunBlack);
-  holoBase.position.set(0, 0.096, -0.04);
-  const holoHood = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.055, 0.095), matCyanAccent);
-  holoHood.position.set(0, 0.125, -0.04);
-  const holoGlass = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.042, 0.008), matOpticGlass);
-  holoGlass.position.set(0, 0.125, -0.04);
-  const holoReticle3D = new THREE.Mesh(new THREE.RingGeometry(0.006, 0.008, 16), new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide }));
-  holoReticle3D.position.set(0, 0.125, -0.045);
-  const holoDot3D = new THREE.Mesh(new THREE.SphereGeometry(0.0028, 8, 8), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
-  holoDot3D.position.set(0, 0.125, -0.045);
-  modelRifle.add(rcvLower, rcvUpper, rcvRail, rcvHandguard, rcvBarrel, rcvBrake, rcvForegrip, rcvMag, rcvGrip, rcvStock, rcvBuffer, holoBase, holoHood, holoGlass, holoReticle3D, holoDot3D);
+  // See-Through Combat Optic with in-scope 3D Illuminated Reticle
+  const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.026, 0.10), matGunMetal);
+  scopeMount.position.set(0, 0.095, -0.04);
+
+  // Hollow cylindrical scope body (open-ended tube you can look straight through)
+  const scopeTube = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.13, 24, 1, true), matGunBlack);
+  scopeTube.material.side = THREE.DoubleSide;
+  scopeTube.rotation.x = Math.PI / 2;
+  scopeTube.position.set(0, 0.132, -0.04);
+
+  // Protective outer ring accent
+  const scopeOuterRing = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.04, 24, 1, true), matCyanAccent);
+  scopeOuterRing.material.side = THREE.DoubleSide;
+  scopeOuterRing.rotation.x = Math.PI / 2;
+  scopeOuterRing.position.set(0, 0.132, -0.04);
+
+  // Elevation and windage turret dials
+  const scopeTurretT = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
+  scopeTurretT.position.set(0, 0.161, -0.04);
+  const scopeTurretR = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
+  scopeTurretR.rotation.z = Math.PI / 2;
+  scopeTurretR.position.set(0.029, 0.132, -0.04);
+
+  // See-through transparent optical glass
+  const matClearLens = new THREE.MeshPhysicalMaterial({
+    color: 0xa5f3fc,
+    transparent: true,
+    opacity: 0.15,
+    roughness: 0.05,
+    transmission: 0.95,
+    depthWrite: false
+  });
+  const scopeLens = new THREE.Mesh(new THREE.CircleGeometry(0.025, 24), matClearLens);
+  scopeLens.material.side = THREE.DoubleSide;
+  scopeLens.position.set(0, 0.132, -0.04);
+
+  // 3D Illuminated Reticle located directly in the scope (crisp ring, 4 stadia ticks, center red dot)
+  const matReticleGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, depthTest: false });
+  const matDotGlow = new THREE.MeshBasicMaterial({ color: 0xf43f5e, side: THREE.DoubleSide, depthTest: false });
+
+  const reticleRing = new THREE.Mesh(new THREE.RingGeometry(0.0075, 0.0095, 24), matReticleGlow);
+  reticleRing.position.set(0, 0.132, -0.042);
+
+  const reticleTickT = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
+  reticleTickT.position.set(0, 0.132 + 0.013, -0.042);
+  const reticleTickB = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
+  reticleTickB.position.set(0, 0.132 - 0.013, -0.042);
+  const reticleTickL = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
+  reticleTickL.position.set(-0.013, 0.132, -0.042);
+  const reticleTickR = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
+  reticleTickR.position.set(0.013, 0.132, -0.042);
+
+  const reticleCenterDot = new THREE.Mesh(new THREE.CircleGeometry(0.0022, 12), matDotGlow);
+  reticleCenterDot.position.set(0, 0.132, -0.042);
+
+  modelRifle.add(
+    rcvLower, rcvUpper, rcvRail, rcvHandguard, rcvBarrel, rcvBrake, rcvForegrip, rcvMag, rcvGrip, rcvStock, rcvBuffer,
+    scopeMount, scopeTube, scopeOuterRing, scopeTurretT, scopeTurretR, scopeLens,
+    reticleRing, reticleTickT, reticleTickB, reticleTickL, reticleTickR, reticleCenterDot
+  );
 
   // 2. SHOTGUN: M4 POSEIDON COMBAT SHOTGUN
   const modelShotgun = new THREE.Group();
@@ -1091,17 +1113,28 @@
   });
   window.addEventListener('contextmenu', e => e.preventDefault());
 
-  window.addEventListener('mousemove', e => {
+  window.addEventListener(mousemove, e => {
     if (!gameActive || document.pointerLockElement !== canvas) return;
+
+    // Filter out Pointer Lock cursor-recenter teleport spikes
+    let dx = e.movementX || 0;
+    let dy = e.movementY || 0;
+    if (Math.abs(dx) > 160 || Math.abs(dy) > 160) {
+      dx = Math.max(-45, Math.min(45, dx));
+      dy = Math.max(-45, Math.min(45, dy));
+    }
+
     const sens = player.isAds ? 0.0012 : 0.0021;
-    player.yaw -= e.movementX * sens;
-    player.pitch = Math.max(-1.48, Math.min(1.48, player.pitch - e.movementY * sens));
+    player.yaw -= dx * sens;
+    // Normalize yaw to [-PI, PI] to prevent floating point angle drift
+    player.yaw = Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw));
+    player.pitch = Math.max(-1.48, Math.min(1.48, player.pitch - dy * sens));
 
     // Realistic Viewmodel Sway & Inertia Lag
     const swayFactor = player.isAds ? 0.00004 : 0.00018;
-    player.swayX = Math.max(-0.045, Math.min(0.045, player.swayX - e.movementX * swayFactor));
-    player.swayY = Math.max(-0.035, Math.min(0.035, player.swayY + e.movementY * swayFactor));
-    player.swayRoll = Math.max(-0.055, Math.min(0.055, player.swayRoll - e.movementX * swayFactor * 2.2));
+    player.swayX = Math.max(-0.045, Math.min(0.045, player.swayX - dx * swayFactor));
+    player.swayY = Math.max(-0.035, Math.min(0.035, player.swayY + dy * swayFactor));
+    player.swayRoll = Math.max(-0.055, Math.min(0.055, player.swayRoll - dx * swayFactor * 2.2));
   });
   document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas && gameActive) {
@@ -1747,12 +1780,11 @@
             if (align > 0.965) {
               aaSlowdown = 0.48; // Reticle friction over enemy
               if (Math.hypot(moveX, moveZ) > 0.25) {
-                // Rotational tracking while strafing
+                // Rotational tracking while strafing (branch-safe atan2 angle difference)
                 const targetYaw = Math.atan2(-toEnemy.x, -toEnemy.z);
-                let diff = targetYaw - player.yaw;
-                while (diff > Math.PI) diff -= Math.PI * 2;
-                while (diff < -Math.PI) diff += Math.PI * 2;
+                const diff = Math.atan2(Math.sin(targetYaw - player.yaw), Math.cos(targetYaw - player.yaw));
                 player.yaw += diff * dt * 2.8;
+                player.yaw = Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw));
               }
             }
           }
@@ -2047,7 +2079,7 @@
       // Precise Optical Centered ADS Coordinates per Weapon
       const hipX = 0.22, hipY = -0.19, hipZ = -0.36;
       const adsX = 0.0;
-      const adsY = player.weaponIdx === 0 ? -0.125 : player.weaponIdx === 1 ? -0.076 : -0.108;
+      const adsY = player.weaponIdx === 0 ? -0.132 : player.weaponIdx === 1 ? -0.076 : -0.108;
       const adsZ = player.weaponIdx === 2 ? -0.22 : -0.24;
 
       const targetPosX = THREE.MathUtils.lerp(hipX, adsX, player.adsAlpha) + (idleBreathingX + bobX + player.swayX) * adsDamp;
@@ -2075,16 +2107,6 @@
       const showSniperScope = player.weaponIdx === 2 && player.adsAlpha > 0.82;
       const sniperScopeEl = document.getElementById('sniper-scope');
       if (sniperScopeEl) sniperScopeEl.style.display = showSniperScope ? 'block' : 'none';
-
-      const showArHolo = player.weaponIdx === 0 && player.adsAlpha > 0.35;
-      const arHoloEl = document.getElementById('ar-holo-scope');
-      if (arHoloEl) {
-        arHoloEl.style.display = showArHolo ? 'block' : 'none';
-        arHoloEl.style.opacity = Math.max(0, Math.min(1, (player.adsAlpha - 0.35) / 0.45));
-        const hParallaxX = player.swayX * 600;
-        const hParallaxY = player.swayY * 600;
-        arHoloEl.style.transform = `translate(calc(-50% + ${hParallaxX}px), calc(-50% + ${hParallaxY}px))`;
-      }
 
       // Hide 3D weapon model only during full sniper scope
       weaponRig.visible = !showSniperScope;
