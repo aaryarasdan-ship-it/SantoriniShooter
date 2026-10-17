@@ -734,27 +734,27 @@
   rcvBuffer.rotation.x = Math.PI / 2;
   rcvBuffer.position.set(0, 0.03, 0.22);
   // See-Through Combat Optic with in-scope 3D Illuminated Reticle
-  const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.026, 0.10), matGunMetal);
-  scopeMount.position.set(0, 0.095, -0.04);
+  const arMount = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.026, 0.10), matGunMetal);
+  arMount.position.set(0, 0.095, -0.04);
 
   // Hollow cylindrical scope body (open-ended tube you can look straight through)
-  const scopeTube = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.13, 24, 1, true), matGunBlack);
-  scopeTube.material.side = THREE.DoubleSide;
-  scopeTube.rotation.x = Math.PI / 2;
-  scopeTube.position.set(0, 0.132, -0.04);
+  const arTube = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.13, 24, 1, true), matGunBlack);
+  arTube.material.side = THREE.DoubleSide;
+  arTube.rotation.x = Math.PI / 2;
+  arTube.position.set(0, 0.132, -0.04);
 
   // Protective outer ring accent
-  const scopeOuterRing = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.04, 24, 1, true), matCyanAccent);
-  scopeOuterRing.material.side = THREE.DoubleSide;
-  scopeOuterRing.rotation.x = Math.PI / 2;
-  scopeOuterRing.position.set(0, 0.132, -0.04);
+  const arOuterRing = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.04, 24, 1, true), matCyanAccent);
+  arOuterRing.material.side = THREE.DoubleSide;
+  arOuterRing.rotation.x = Math.PI / 2;
+  arOuterRing.position.set(0, 0.132, -0.04);
 
   // Elevation and windage turret dials
-  const scopeTurretT = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
-  scopeTurretT.position.set(0, 0.161, -0.04);
-  const scopeTurretR = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
-  scopeTurretR.rotation.z = Math.PI / 2;
-  scopeTurretR.position.set(0.029, 0.132, -0.04);
+  const arTurretT = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
+  arTurretT.position.set(0, 0.161, -0.04);
+  const arTurretR = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), matGunSteel);
+  arTurretR.rotation.z = Math.PI / 2;
+  arTurretR.position.set(0.029, 0.132, -0.04);
 
   // See-through transparent optical glass
   const matClearLens = new THREE.MeshPhysicalMaterial({
@@ -765,33 +765,33 @@
     transmission: 0.95,
     depthWrite: false
   });
-  const scopeLens = new THREE.Mesh(new THREE.CircleGeometry(0.025, 24), matClearLens);
-  scopeLens.material.side = THREE.DoubleSide;
-  scopeLens.position.set(0, 0.132, -0.04);
+  const arLens = new THREE.Mesh(new THREE.CircleGeometry(0.025, 24), matClearLens);
+  arLens.material.side = THREE.DoubleSide;
+  arLens.position.set(0, 0.132, -0.04);
 
   // 3D Illuminated Reticle located directly in the scope (crisp ring, 4 stadia ticks, center red dot)
   const matReticleGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, depthTest: false });
   const matDotGlow = new THREE.MeshBasicMaterial({ color: 0xf43f5e, side: THREE.DoubleSide, depthTest: false });
 
-  const reticleRing = new THREE.Mesh(new THREE.RingGeometry(0.0075, 0.0095, 24), matReticleGlow);
-  reticleRing.position.set(0, 0.132, -0.042);
+  const arReticleRing = new THREE.Mesh(new THREE.RingGeometry(0.0075, 0.0095, 24), matReticleGlow);
+  arReticleRing.position.set(0, 0.132, -0.042);
 
-  const reticleTickT = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
-  reticleTickT.position.set(0, 0.132 + 0.013, -0.042);
-  const reticleTickB = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
-  reticleTickB.position.set(0, 0.132 - 0.013, -0.042);
-  const reticleTickL = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
-  reticleTickL.position.set(-0.013, 0.132, -0.042);
-  const reticleTickR = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
-  reticleTickR.position.set(0.013, 0.132, -0.042);
+  const arReticleTickT = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
+  arReticleTickT.position.set(0, 0.132 + 0.013, -0.042);
+  const arReticleTickB = new THREE.Mesh(new THREE.PlaneGeometry(0.0016, 0.005), matReticleGlow);
+  arReticleTickB.position.set(0, 0.132 - 0.013, -0.042);
+  const arReticleTickL = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
+  arReticleTickL.position.set(-0.013, 0.132, -0.042);
+  const arReticleTickR = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.0016), matReticleGlow);
+  arReticleTickR.position.set(0.013, 0.132, -0.042);
 
-  const reticleCenterDot = new THREE.Mesh(new THREE.CircleGeometry(0.0022, 12), matDotGlow);
-  reticleCenterDot.position.set(0, 0.132, -0.042);
+  const arReticleCenterDot = new THREE.Mesh(new THREE.CircleGeometry(0.0022, 12), matDotGlow);
+  arReticleCenterDot.position.set(0, 0.132, -0.042);
 
   modelRifle.add(
     rcvLower, rcvUpper, rcvRail, rcvHandguard, rcvBarrel, rcvBrake, rcvForegrip, rcvMag, rcvGrip, rcvStock, rcvBuffer,
-    scopeMount, scopeTube, scopeOuterRing, scopeTurretT, scopeTurretR, scopeLens,
-    reticleRing, reticleTickT, reticleTickB, reticleTickL, reticleTickR, reticleCenterDot
+    arMount, arTube, arOuterRing, arTurretT, arTurretR, arLens,
+    arReticleRing, arReticleTickT, arReticleTickB, arReticleTickL, arReticleTickR, arReticleCenterDot
   );
 
   // 2. SHOTGUN: M4 POSEIDON COMBAT SHOTGUN
@@ -1113,7 +1113,7 @@
   });
   window.addEventListener('contextmenu', e => e.preventDefault());
 
-  window.addEventListener(mousemove, e => {
+  window.addEventListener('mousemove', e => {
     if (!gameActive || document.pointerLockElement !== canvas) return;
 
     // Filter out Pointer Lock cursor-recenter teleport spikes
