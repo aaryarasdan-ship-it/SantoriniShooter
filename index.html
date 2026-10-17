@@ -2035,7 +2035,7 @@ window.addEventListener('error', function(e) {
       } else {
         const baseSpd = player.stance === 'tac-sprint' ? 11.4 : player.stance === 'crouch' ? 5.2 : player.isAds ? 5.8 : 8.2;
         const targetVx = (fwdX * (-inZ) + rightX * inX) * baseSpd;
-        const targetVz = (fwdZ * (-inZ) + rightX * inX) * baseSpd;
+        const targetVz = (fwdZ * (-inZ) + rightZ * inX) * baseSpd;
 
         if (player.onGround) {
           // Ground movement: smooth progressive acceleration & deceleration friction
