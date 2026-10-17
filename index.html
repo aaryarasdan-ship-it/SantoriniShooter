@@ -490,6 +490,8 @@
   pitchObj.add(rollObj);
   rollObj.add(camera);
   scene.add(yawObj);
+  yawObj.position.set(-28, 1.7, -28);
+  yawObj.rotation.y = 0.7;
 
   function createEnvTexture() {
     const c = document.createElement('canvas');
@@ -1221,7 +1223,7 @@
     tag.className = 'nametag';
     document.getElementById('nametags-layer').appendChild(tag);
 
-    return { group, head, torso, armorMat, visorMat, tag };
+    return { group, head, torso, legL, legR, armorMat, visorMat, tag };
   }
 
   function spawnPointForTeam(team) {
@@ -1874,6 +1876,7 @@
     requestAnimationFrame(animate);
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
+    const time = now * 0.001;
 
     const pad = pollXboxController(dt);
 
@@ -1974,10 +1977,6 @@
       camera.fov += (targetFov - camera.fov) * 12 * dt;
       camera.updateProjectionMatrix();
 
-      // Sniper Scope Overlay
-      const showScope = player.weaponIdx === 2 && player.adsAlpha > 0.82;
-      document.getElementById('sniper-scope').style.display = showScope ? 'block' : 'none';
-      weaponRig.visible = !showScope;
 
       // --- DETAILED PROCEDURAL WEAPON & VIEWMODEL ANIMATIONS ---
       const moving = Math.hypot(player.vx, player.vz);
@@ -2220,17 +2219,18 @@
       act.animTime = (act.animTime || 0) + dt * Math.min(14, Math.max(1.5, spd * 2.2));
 
       // Detailed third-person stride & running bob animation
-      if (spd > 0.3) {
-        act.legL.rotation.x = Math.sin(act.animTime) * 0.65;
-        act.legR.rotation.x = -Math.sin(act.animTime) * 0.65;
-        act.torso.position.y = 0.95 + Math.abs(Math.sin(act.animTime)) * 0.045;
-        act.torso.rotation.x = Math.min(0.25, spd * 0.025); // Forward run lean
-      } else {
-        // Idle breathing stance
-        act.legL.rotation.x *= 0.85;
-        act.legR.rotation.x *= 0.85;
-        act.torso.position.y = 0.95 + Math.sin(act.animTime * 0.5) * 0.012;
-        act.torso.rotation.x *= 0.85;
+      if (act.legL && act.legR && act.torso) {
+        if (spd > 0.3) {
+          act.legL.rotation.x = Math.sin(act.animTime) * 0.65;
+          act.legR.rotation.x = -Math.sin(act.animTime) * 0.65;
+          act.torso.position.y = 0.95 + Math.abs(Math.sin(act.animTime)) * 0.045;
+          act.torso.rotation.x = Math.min(0.25, spd * 0.025);
+        } else {
+          act.legL.rotation.x *= 0.85;
+          act.legR.rotation.x *= 0.85;
+          act.torso.position.y = 0.95 + Math.sin(act.animTime * 0.5) * 0.012;
+          act.torso.rotation.x *= 0.85;
+        }
       }
 
       act.group.position.set(act.x, act.y, act.z);
@@ -2265,7 +2265,6 @@
     }
 
     renderer.render(scene, camera);
-    requestAnimationFrame(animate);
   }
 
   // ============================================================================
