@@ -334,10 +334,28 @@
     </div>
 
     <div>
-      <!-- CONTROLLER & TUNING -->
+      <!-- MOUSE & CONTROLLER TUNING -->
       <div class="section-box">
         <div class="sec-head">
-          <span>🎮 Xbox Controller & CoD Tuning</span>
+          <span>🖱️ Mouse & Aim Sensitivity</span>
+        </div>
+        <div class="slider-row">
+          <span>Mouse Sensitivity (<span id="val-mouse-sens">1.8</span>)</span>
+          <input type="range" id="sl-mouse-sens" min="0.4" max="4.0" step="0.1" value="1.8">
+        </div>
+        <div class="slider-row">
+          <span>ADS Sensitivity Multiplier (<span id="val-ads-sens">0.65x</span>)</span>
+          <input type="range" id="sl-ads-sens" min="0.2" max="1.5" step="0.05" value="0.65">
+        </div>
+        <div class="slider-row">
+          <span>Field of View (FOV: <span id="val-fov">86</span>°)</span>
+          <input type="range" id="sl-fov" min="70" max="105" step="1" value="86">
+        </div>
+      </div>
+
+      <div class="section-box">
+        <div class="sec-head">
+          <span>🎮 Controller Tuning</span>
           <span id="menu-pad-badge" style="color:#94a3b8;">Press Any Button</span>
         </div>
         <div class="slider-row">
@@ -347,10 +365,6 @@
         <div class="slider-row">
           <span>Stick Vertical Sens</span>
           <input type="range" id="sl-sens-y" min="1" max="10" step="0.5" value="4.5">
-        </div>
-        <div class="slider-row">
-          <span>Field of View (FOV)</span>
-          <input type="range" id="sl-fov" min="70" max="105" step="1" value="86">
         </div>
         <div class="slider-row">
           <span>Rotational Aim Assist</span>
@@ -770,8 +784,8 @@
   arLens.position.set(0, 0.132, -0.04);
 
   // 3D Illuminated Reticle located directly in the scope (crisp ring, 4 stadia ticks, center red dot)
-  const matReticleGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, depthTest: false });
-  const matDotGlow = new THREE.MeshBasicMaterial({ color: 0xf43f5e, side: THREE.DoubleSide, depthTest: false });
+  const matReticleGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, depthTest: true, depthWrite: false });
+  const matDotGlow = new THREE.MeshBasicMaterial({ color: 0xf43f5e, side: THREE.DoubleSide, depthTest: true, depthWrite: false });
 
   const arReticleRing = new THREE.Mesh(new THREE.RingGeometry(0.0075, 0.0095, 24), matReticleGlow);
   arReticleRing.position.set(0, 0.132, -0.042);
@@ -1124,14 +1138,17 @@
       dy = Math.max(-45, Math.min(45, dy));
     }
 
-    const sens = player.isAds ? 0.0012 : 0.0021;
+    // Dynamic mouse & ADS sensitivity
+    const baseSens = parseFloat(document.getElementById('sl-mouse-sens')?.value || 1.8) * 0.00115;
+    const adsMult = parseFloat(document.getElementById('sl-ads-sens')?.value || 0.65);
+    const sens = player.isAds ? baseSens * adsMult : baseSens;
+
     player.yaw -= dx * sens;
-    // Normalize yaw to [-PI, PI] to prevent floating point angle drift
     player.yaw = Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw));
     player.pitch = Math.max(-1.48, Math.min(1.48, player.pitch - dy * sens));
 
     // Realistic Viewmodel Sway & Inertia Lag
-    const swayFactor = player.isAds ? 0.00004 : 0.00018;
+    const swayFactor = player.isAds ? 0.00004 : 0.00016;
     player.swayX = Math.max(-0.045, Math.min(0.045, player.swayX - dx * swayFactor));
     player.swayY = Math.max(-0.035, Math.min(0.035, player.swayY + dy * swayFactor));
     player.swayRoll = Math.max(-0.055, Math.min(0.055, player.swayRoll - dx * swayFactor * 2.2));
@@ -1587,21 +1604,39 @@
         const targetActorId = hit.object.userData.actorId;
         if (targetActorId) {
           const isHead = !!hit.object.userData.isHead;
-          const totalDmg = Math.round(w.dmg * (isHead ? 1.75 : 1.0));
-          showHitmarker(isHead);
+          const hitDist = origin.distanceTo(endPt);
+          let totalDmg = Math.round(w.dmg * (isHead ? 1.75 : 1.0));
 
-          if (mpRole === 'client' && hostConn && hostConn.open) {
-            hostConn.send({
-              type: 'hit_event',
-              targetId: targetActorId,
-              dmg: totalDmg,
-              headshot: isHead,
-              attackerName: player.name,
-              attackerTeam: player.team,
-              attackerId: player.id
-            });
-          } else {
-            applyDamageToTarget(targetActorId, totalDmg, player.name, player.team, player.id, isHead);
+          // Shotgun Distance Falloff: only effective in close quarters (<17m)
+          if (player.weaponIdx === 1) {
+            if (hitDist <= 5.5) {
+              totalDmg = totalDmg; // 100% close-range devastation
+            } else if (hitDist <= 11.0) {
+              const falloff = 1.0 - ((hitDist - 5.5) / 5.5) * 0.65; // drops from 100% to 35%
+              totalDmg = Math.max(2, Math.round(totalDmg * falloff));
+            } else if (hitDist <= 17.0) {
+              const falloff = 0.35 - ((hitDist - 11.0) / 6.0) * 0.27; // drops from 35% to 8%
+              totalDmg = Math.max(1, Math.round(totalDmg * falloff));
+            } else {
+              totalDmg = 0; // pellets dissipate beyond 17m
+            }
+          }
+
+          if (totalDmg > 0) {
+            showHitmarker(isHead);
+            if (mpRole === 'client' && hostConn && hostConn.open) {
+              hostConn.send({
+                type: 'hit_event',
+                targetId: targetActorId,
+                dmg: totalDmg,
+                headshot: isHead,
+                attackerName: player.name,
+                attackerTeam: player.team,
+                attackerId: player.id
+              });
+            } else {
+              applyDamageToTarget(targetActorId, totalDmg, player.name, player.team, player.id, isHead);
+            }
           }
         } else if (hit.face) {
           spawnBulletDecal(hit.point, hit.face.normal);
@@ -1652,6 +1687,17 @@
       const sp = spawnPointForTeam(act.team);
       act.x = sp.x; act.z = sp.z; act.hp = 100;
     }
+  }
+
+  // Check line of sight through map geometry
+  function checkLineOfSight(fromPos, toPos) {
+    const dir = new THREE.Vector3().subVectors(toPos, fromPos);
+    const dist = dir.length();
+    if (dist < 0.2) return true;
+    dir.normalize();
+    const losRay = new THREE.Raycaster(fromPos, dir, 0.1, dist - 0.2);
+    const hits = losRay.intersectObjects(shootableMeshes, false);
+    return hits.length === 0;
   }
 
   function damageLocalPlayer(dmg, attackerName, attackerTeam, attackerId) {
@@ -1963,37 +2009,78 @@
         if (player.slideTimer <= 0) player.stance = 'crouch';
       } else {
         const baseSpd = player.stance === 'tac-sprint' ? 11.4 : player.stance === 'crouch' ? 5.2 : player.isAds ? 5.8 : 8.2;
-        player.vx = (fwdX * (-inZ) + rightX * inX) * baseSpd;
-        player.vz = (fwdZ * (-inZ) + rightZ * inX) * baseSpd;
-      }
-      // Gravity & Vertical Collision
-      player.vy -= 22.0 * dt;
-      let nextX = player.x + player.vx * dt;
-      let nextZ = player.z + player.vz * dt;
-      let nextY = player.y + player.vy * dt;
+        const targetVx = (fwdX * (-inZ) + rightX * inX) * baseSpd;
+        const targetVz = (fwdZ * (-inZ) + rightX * inX) * baseSpd;
 
+        if (player.onGround) {
+          // Ground movement: smooth progressive acceleration & deceleration friction
+          const accel = inLen > 0.08 ? 20.0 : 14.0;
+          player.vx += (targetVx - player.vx) * Math.min(1.0, accel * dt);
+          player.vz += (targetVz - player.vz) * Math.min(1.0, accel * dt);
+        } else {
+          // Mid-air: momentum conserved, heavily restricted steering authority (cannot reverse mid-jump)
+          const airAuthority = 2.8;
+          player.vx += (targetVx - player.vx) * Math.min(1.0, airAuthority * dt);
+          player.vz += (targetVz - player.vz) * Math.min(1.0, airAuthority * dt);
+        }
+      }
+
+      // Gravity & Vertical Ground Height
+      player.vy -= 22.0 * dt;
+      let nextY = player.y + player.vy * dt;
       const eyeHeight = player.slideTimer > 0 ? 0.85 : player.stance === 'crouch' ? 1.12 : 1.7;
       let groundY = 0;
 
+      // Check ground support
       for (const c of colliders) {
-        if (nextX + 0.38 > c.minX && nextX - 0.38 < c.maxX && nextZ + 0.38 > c.minZ && nextZ - 0.38 < c.maxZ) {
+        if (player.x + 0.35 > c.minX && player.x - 0.35 < c.maxX && player.z + 0.35 > c.minZ && player.z - 0.35 < c.maxZ) {
           if (player.y - eyeHeight >= c.maxY - 0.35) {
             groundY = Math.max(groundY, c.maxY);
-          } else if (nextY > c.minY) {
-            // Horizontal pushback
-            nextX = player.x;
-            nextZ = player.z;
           }
         }
+      }
+
+      // Independent Axis Collision & Wall-Sliding (X-axis test)
+      let testX = player.x + player.vx * dt;
+      let collideX = false;
+      for (const c of colliders) {
+        if (testX + 0.38 > c.minX && testX - 0.38 < c.maxX && player.z + 0.35 > c.minZ && player.z - 0.35 < c.maxZ) {
+          if (player.y - eyeHeight < c.maxY - 0.35 && nextY > c.minY) {
+            collideX = true;
+            break;
+          }
+        }
+      }
+      if (!collideX) {
+        player.x = Math.max(-43.5, Math.min(43.5, testX));
+      } else {
+        player.vx = 0; // stop X velocity, allow Z velocity to slide freely along wall!
+      }
+
+      // Independent Axis Collision & Wall-Sliding (Z-axis test)
+      let testZ = player.z + player.vz * dt;
+      let collideZ = false;
+      for (const c of colliders) {
+        if (player.x + 0.35 > c.minX && player.x - 0.35 < c.maxX && testZ + 0.38 > c.minZ && testZ - 0.38 < c.maxZ) {
+          if (player.y - eyeHeight < c.maxY - 0.35 && nextY > c.minY) {
+            collideZ = true;
+            break;
+          }
+        }
+      }
+      if (!collideZ) {
+        player.z = Math.max(-43.5, Math.min(43.5, testZ));
+      } else {
+        player.vz = 0; // stop Z velocity, allow X velocity to slide freely along wall!
       }
 
       if (nextY - eyeHeight <= groundY) {
         nextY = groundY + eyeHeight;
         player.vy = 0;
         player.onGround = true;
+      } else {
+        player.onGround = false;
       }
-      player.x = Math.max(-43.5, Math.min(43.5, nextX));
-      player.z = Math.max(-43.5, Math.min(43.5, nextZ));
       player.y = nextY;
 
       // Camera Transforms & Dynamic FOV
@@ -2061,12 +2148,40 @@
         drawOffset = Math.sin((player.drawTimer / 0.28) * Math.PI) * -0.16;
       }
 
-      // 6. Reload Animation Tilt & Dip
-      let reloadRotZ = 0, reloadDipY = 0;
+      // 6. Realistic Multi-Phase Tactical Reload Animation
+      let reloadRotX = 0, reloadRotZ = 0, reloadDipY = 0, reloadOffsetZ = 0;
       if (player.reloading > 0) {
-        const reloadProg = 1 - (player.reloading / WEAPONS[player.weaponIdx].fireRate * 1.5);
-        reloadDipY = Math.sin(reloadProg * Math.PI) * -0.065;
-        reloadRotZ = Math.sin(reloadProg * Math.PI) * 0.45;
+        const rTotal = 1.35;
+        const prog = Math.max(0, Math.min(1.0, 1 - (player.reloading / rTotal)));
+
+        if (prog < 0.22) {
+          // Phase 1: Cant weapon left and drop down into workspace
+          const p = prog / 0.22;
+          reloadDipY = -0.085 * Math.sin(p * Math.PI * 0.5);
+          reloadRotZ = 0.48 * Math.sin(p * Math.PI * 0.5);
+          reloadRotX = -0.18 * Math.sin(p * Math.PI * 0.5);
+        } else if (prog < 0.46) {
+          // Phase 2: Mag release drop & hand reach
+          const p = (prog - 0.22) / 0.24;
+          reloadDipY = -0.085 - 0.02 * Math.sin(p * Math.PI);
+          reloadRotZ = 0.48;
+          reloadRotX = -0.18 + 0.05 * Math.sin(p * Math.PI);
+          reloadOffsetZ = 0.02 * Math.sin(p * Math.PI);
+        } else if (prog < 0.74) {
+          // Phase 3: Fresh magazine insertion upward punch
+          const p = (prog - 0.46) / 0.28;
+          reloadDipY = -0.085 + 0.04 * Math.sin(p * Math.PI);
+          reloadRotZ = 0.48 - 0.12 * Math.sin(p * Math.PI);
+          reloadRotX = -0.18;
+          reloadOffsetZ = -0.025 * Math.sin(p * Math.PI);
+        } else {
+          // Phase 4: Bolt release / rack & return to shoulder
+          const p = (prog - 0.74) / 0.26;
+          reloadDipY = -0.085 * (1 - p);
+          reloadRotZ = 0.48 * (1 - p);
+          reloadRotX = -0.18 * (1 - p);
+          reloadOffsetZ = 0.03 * Math.sin(p * Math.PI);
+        }
       }
 
       // 7. Recoil Kick Recovery
@@ -2084,7 +2199,7 @@
 
       const targetPosX = THREE.MathUtils.lerp(hipX, adsX, player.adsAlpha) + (idleBreathingX + bobX + player.swayX) * adsDamp;
       const targetPosY = THREE.MathUtils.lerp(hipY, adsY, player.adsAlpha) + (idleBreathingY + bobY + player.swayY - player.landDip + drawOffset + reloadDipY) * adsDamp;
-      const targetPosZ = THREE.MathUtils.lerp(hipZ, adsZ, player.adsAlpha) + player.recoilKickZ;
+      const targetPosZ = THREE.MathUtils.lerp(hipZ, adsZ, player.adsAlpha) + player.recoilKickZ + reloadOffsetZ;
 
       weaponRig.position.x += (targetPosX - weaponRig.position.x) * 24 * dt;
       weaponRig.position.y += (targetPosY - weaponRig.position.y) * 24 * dt;
@@ -2095,7 +2210,7 @@
       const sprintTiltZ = isSprinting ? 0.38 : 0;
       const slideTiltZ = isSliding ? 0.42 : 0;
 
-      const targetRotX = (sprintTiltX - player.recoilKickRotX) * (1 - player.adsAlpha) + player.swayY * 1.5;
+      const targetRotX = (sprintTiltX - player.recoilKickRotX + reloadRotX) * (1 - player.adsAlpha) + player.swayY * 1.5;
       const targetRotY = (sprintTiltY) * (1 - player.adsAlpha) + player.swayX * 1.8;
       const targetRotZ = (sprintTiltZ + slideTiltZ + reloadRotZ + (bobRoll + idleBreathingRoll + player.swayRoll) * adsDamp) * (1 - player.adsAlpha);
 
@@ -2141,17 +2256,26 @@
           if (!blocked) { act.x = nx; act.z = nz; }
           else { act.wpX = (Math.random() - 0.5) * 55; act.wpZ = (Math.random() - 0.5) * 55; }
 
-          // Find closest enemy (Player or other Bot/Peer)
+          // Find closest enemy WITH CLEAR LINE OF SIGHT (No targeting through walls)
           let bestTarget = null, bestDist = 38;
-          const checkCandidate = (candId, cx, cz, cTeam) => {
+          const botEye = new THREE.Vector3(act.x, 1.4, act.z);
+
+          const checkCandidate = (candId, cx, cy, cz, cTeam) => {
             if (candId === act.id) return;
             if ((gameMode === 'tdm' || gameMode === '1v1') && cTeam === act.team) return;
             const d = Math.hypot(cx - act.x, cz - act.z);
-            if (d < bestDist) { bestDist = d; bestTarget = { id: candId, x: cx, z: cz, team: cTeam }; }
+            if (d < bestDist) {
+              const targetEye = new THREE.Vector3(cx, cy + 1.2, cz);
+              if (checkLineOfSight(botEye, targetEye)) {
+                bestDist = d;
+                bestTarget = { id: candId, x: cx, y: cy, z: cz, team: cTeam, eye: targetEye };
+              }
+            }
           };
-          checkCandidate(player.id, player.x, player.z, player.team);
+
+          checkCandidate(player.id, player.x, player.y - 1.7, player.z, player.team);
           actors.forEach(other => {
-            if (other.hp > 0) checkCandidate(other.id, other.x, other.z, other.team);
+            if (other.hp > 0) checkCandidate(other.id, other.x, other.y, other.z, other.team);
           });
 
           if (bestTarget) {
@@ -2160,11 +2284,33 @@
             if (act.fireCd <= 0) {
               act.fireCd = 0.65 + Math.random() * 0.55;
               const startVec = new THREE.Vector3(act.x, 1.35, act.z);
-              const endVec = new THREE.Vector3(bestTarget.x + (Math.random() - 0.5) * 1.4, 1.2, bestTarget.z + (Math.random() - 0.5) * 1.4);
-              spawnTracer(startVec, endVec);
-              playGunSound(0, Math.max(0.08, 1 - bestDist / 45));
-              if (Math.random() < 0.36) {
-                applyDamageToTarget(bestTarget.id, 14, act.name, act.team, act.id, false);
+              const aimTarget = new THREE.Vector3(
+                bestTarget.x + (Math.random() - 0.5) * 1.0,
+                (bestTarget.y + 1.2) + (Math.random() - 0.5) * 0.8,
+                bestTarget.z + (Math.random() - 0.5) * 1.0
+              );
+
+              // Bullet Wall Raycast: verify bullet path is not obstructed by obstacles
+              const fireDir = new THREE.Vector3().subVectors(aimTarget, startVec);
+              const fireDist = fireDir.length();
+              fireDir.normalize();
+
+              const bulletRay = new THREE.Raycaster(startVec, fireDir, 0.1, fireDist);
+              const wallHits = bulletRay.intersectObjects(shootableMeshes, false);
+
+              if (wallHits.length > 0) {
+                // Bullet strikes wall!
+                const wh = wallHits[0];
+                spawnTracer(startVec, wh.point);
+                spawnBulletDecal(wh.point, wh.face.normal);
+                playGunSound(0, Math.max(0.08, 1 - bestDist / 45));
+              } else {
+                // Clear shot to target!
+                spawnTracer(startVec, aimTarget);
+                playGunSound(0, Math.max(0.08, 1 - bestDist / 45));
+                if (Math.random() < 0.38) {
+                  applyDamageToTarget(bestTarget.id, 14, act.name, act.team, act.id, false);
+                }
               }
             }
           } else {
@@ -2263,7 +2409,16 @@
       const isFriendly = ((gameMode === 'tdm' || gameMode === '1v1') && act.team === player.team);
       const dist = Math.hypot(act.x - player.x, act.z - player.z);
 
-      if (worldPos.z < 1 && (isFriendly || dist < 26)) {
+      // Hide enemy nametags when obstructed by walls (No wallhacking)
+      let visibleLOS = isFriendly;
+      if (!isFriendly && worldPos.z < 1 && dist < 32) {
+        const camPos = new THREE.Vector3();
+        camera.getWorldPosition(camPos);
+        const enemyHead = new THREE.Vector3(act.x, act.y + 1.7, act.z);
+        visibleLOS = checkLineOfSight(camPos, enemyHead);
+      }
+
+      if (worldPos.z < 1 && dist < 32 && visibleLOS) {
         const sx = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
         const sy = (-worldPos.y * 0.5 + 0.5) * window.innerHeight;
         act.tag.style.display = 'block';
@@ -2276,186 +2431,4 @@
       }
     });
 
-    // Bullet Tracers Update
-    for (let i = tracers.length - 1; i >= 0; i--) {
-      tracers[i].life -= dt;
-      tracers[i].mat.opacity = Math.max(0, tracers[i].life / 0.08);
-      if (tracers[i].life <= 0) {
-        scene.remove(tracers[i].line);
-        tracers.splice(i, 1);
-      }
-    }
 
-    renderer.render(scene, camera);
-  }
-
-  // ============================================================================
-  // 11. MENU CONTROLS, FULLSCREEN & GRAPHICS PRESETS
-  // ============================================================================
-  function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-  }
-
-  function toggleFullscreen() {
-    if (!isFullscreen()) {
-      const docEl = document.documentElement;
-      const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-      if (requestFS) {
-        requestFS.call(docEl).catch(err => {
-          console.warn('Fullscreen request failed:', err);
-        });
-      }
-    } else {
-      const exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-      if (exitFS) {
-        exitFS.call(document).catch(err => {
-          console.warn('Exit fullscreen failed:', err);
-        });
-      }
-    }
-  }
-
-  function updateFullscreenUI() {
-    const fs = isFullscreen();
-    const hudFsLabel = document.getElementById('hud-fs-label');
-    const menuFsLabel = document.getElementById('menu-fs-label');
-    if (hudFsLabel) hudFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
-    if (menuFsLabel) menuFsLabel.textContent = fs ? 'Exit Fullscreen' : 'Fullscreen (F)';
-  }
-
-  document.addEventListener('fullscreenchange', updateFullscreenUI);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
-  document.addEventListener('mozfullscreenchange', updateFullscreenUI);
-
-  function deployMatch() {
-    ensureAudio();
-    player.name = (document.getElementById('player-callsign').value || 'AARYA-01').toUpperCase();
-    baseFov = parseFloat(document.getElementById('sl-fov').value);
-    const autoFs = document.getElementById('chk-auto-fs')?.checked;
-    if (autoFs && !isFullscreen()) {
-      toggleFullscreen();
-    }
-    document.getElementById('menu-overlay').style.display = 'none';
-    gameActive = true;
-    canvas.requestPointerLock?.();
-  }
-
-  function pauseGame() {
-    gameActive = false;
-    document.exitPointerLock?.();
-    document.getElementById('menu-overlay').style.display = 'flex';
-  }
-
-  document.getElementById('btn-deploy').addEventListener('click', deployMatch);
-
-  document.getElementById('btn-hud-fs')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFullscreen();
-  });
-
-  document.getElementById('btn-hud-menu')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    pauseGame();
-  });
-
-  document.getElementById('btn-menu-fs')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFullscreen();
-  });
-
-  function setGameMode(mode) {
-    gameMode = mode;
-    document.getElementById('mode-tdm').classList.toggle('active', mode === 'tdm');
-    document.getElementById('mode-ffa').classList.toggle('active', mode === 'ffa');
-    document.getElementById('mode-1v1').classList.toggle('active', mode === '1v1');
-    const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
-    document.getElementById('score-cap').textContent = cap;
-    if (mode === '1v1') {
-      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
-    } else if (mode === 'tdm') {
-      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
-    } else {
-      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
-    }
-    syncBotsForMode();
-  }
-
-  document.getElementById('mode-tdm').addEventListener('click', () => setGameMode('tdm'));
-  document.getElementById('mode-ffa').addEventListener('click', () => setGameMode('ffa'));
-  document.getElementById('mode-1v1').addEventListener('click', () => setGameMode('1v1'));
-
-  document.querySelectorAll('[data-gfx]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-gfx]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const preset = btn.getAttribute('data-gfx');
-      if (preset === 'ultra') {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        sunLight.castShadow = true;
-      } else if (preset === 'high') {
-        renderer.setPixelRatio(1.25);
-        sunLight.castShadow = true;
-      } else {
-        renderer.setPixelRatio(1.0);
-        sunLight.castShadow = false;
-      }
-    });
-  });
-
-  // Mouse sensitivity slider listeners & persistence
-  const slMouseSens = document.getElementById('sl-mouse-sens');
-  const slAdsSens = document.getElementById('sl-ads-sens');
-  const slFov = document.getElementById('sl-fov');
-
-  try {
-    const savedMouse = localStorage.getItem('aegean_mouse_sens');
-    if (savedMouse && slMouseSens) {
-      slMouseSens.value = savedMouse;
-      const elVal = document.getElementById('val-mouse-sens');
-      if (elVal) elVal.textContent = savedMouse;
-    }
-    const savedAds = localStorage.getItem('aegean_ads_sens');
-    if (savedAds && slAdsSens) {
-      slAdsSens.value = savedAds;
-      const elVal = document.getElementById('val-ads-sens');
-      if (elVal) elVal.textContent = savedAds + 'x';
-    }
-    const savedFov = localStorage.getItem('aegean_fov');
-    if (savedFov && slFov) {
-      slFov.value = savedFov;
-      const elVal = document.getElementById('val-fov');
-      if (elVal) elVal.textContent = savedFov;
-      baseFov = parseFloat(savedFov);
-    }
-  } catch (err) {}
-
-  slMouseSens?.addEventListener('input', e => {
-    const elVal = document.getElementById('val-mouse-sens');
-    if (elVal) elVal.textContent = e.target.value;
-    try { localStorage.setItem('aegean_mouse_sens', e.target.value); } catch (err) {}
-  });
-
-  slAdsSens?.addEventListener('input', e => {
-    const elVal = document.getElementById('val-ads-sens');
-    if (elVal) elVal.textContent = e.target.value + 'x';
-    try { localStorage.setItem('aegean_ads_sens', e.target.value); } catch (err) {}
-  });
-
-  slFov?.addEventListener('input', e => {
-    const elVal = document.getElementById('val-fov');
-    if (elVal) elVal.textContent = e.target.value;
-    baseFov = parseFloat(e.target.value);
-    try { localStorage.setItem('aegean_fov', e.target.value); } catch (err) {}
-  });
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  requestAnimationFrame(animate);
-})();
-</script>
-</body>
-</html>
