@@ -264,6 +264,7 @@
         <div class="btn-row" style="margin-bottom:8px;">
           <button class="btn active" id="mode-tdm">4v4 Team Deathmatch</button>
           <button class="btn" id="mode-ffa">Free-For-All (8 Players)</button>
+          <button class="btn" id="mode-1v1">1v1 Duel</button>
         </div>
         <div class="btn-row">
           <button class="btn active" data-gfx="ultra">Ultra PBR</button>
@@ -654,9 +655,10 @@
   // 5. PLAYER STATE, CALL OF DUTY MOVEMENT & BALLISTICS
   // ============================================================================
   let gameActive = false;
-  let gameMode = 'tdm'; // 'tdm' | 'ffa'
+  let gameMode = 'tdm'; // 'tdm' | 'ffa' | '1v1'
   const SCORE_LIMIT_TDM = 40;
   const SCORE_LIMIT_FFA = 20;
+  const SCORE_LIMIT_1V1 = 10;
   let scoreHelios = 0, scoreIcarus = 0;
   let baseFov = 86;
 
@@ -853,6 +855,10 @@
   }
 
   function spawnPointForTeam(team) {
+    if (gameMode === '1v1') {
+      const baseZ = team === 'helios' ? -32 : 32;
+      return { x: 0, y: 1.7, z: baseZ };
+    }
     if (gameMode === 'tdm') {
       const baseZ = team === 'helios' ? -33 : 33;
       const baseX = (Math.random() - 0.5) * 38;
@@ -863,26 +869,72 @@
     return { x: Math.cos(ang) * rad, y: 1.7, z: Math.sin(ang) * rad };
   }
 
-  function initBots() {
-    BOT_DEFS.forEach((def, idx) => {
-      if (actors.has(def.id)) return;
-      const visuals = createCharacterMesh(def.team);
-      const sp = spawnPointForTeam(def.team);
-      actors.set(def.id, {
-        id: def.id,
-        name: def.name,
-        team: def.team,
-        isBot: true,
-        x: sp.x, y: 0, z: sp.z,
-        yaw: Math.random() * Math.PI * 2,
-        hp: 100,
-        kills: 0, deaths: 0,
-        wpX: (Math.random() - 0.5) * 52,
-        wpZ: (Math.random() - 0.5) * 52,
-        fireCd: 0.5 + Math.random(),
-        ...visuals
+  function syncBotsForMode() {
+    if (gameMode === '1v1') {
+      const isMultiplayer = (mpRole === 'host' && clientConns.length > 0) || mpRole === 'client';
+      BOT_DEFS.forEach((def, idx) => {
+        if (isMultiplayer) {
+          // Despawn all bots for a pure 1v1 duel against your friend
+          if (actors.has(def.id)) {
+            const act = actors.get(def.id);
+            if (act.group) scene.remove(act.group);
+            if (act.tag) act.tag.remove();
+            actors.delete(def.id);
+          }
+        } else {
+          // Offline/Solo practice: keep 1 sparring bot (bot-3: ARES-AI)
+          if (idx === 3) {
+            if (!actors.has(def.id)) {
+              const visuals = createCharacterMesh('icarus');
+              const sp = spawnPointForTeam('icarus');
+              actors.set(def.id, {
+                id: def.id,
+                name: 'ARES-1v1-BOT',
+                team: 'icarus',
+                isBot: true,
+                x: sp.x, y: 0, z: sp.z,
+                yaw: Math.PI,
+                hp: 100, kills: 0, deaths: 0,
+                wpX: 0, wpZ: 0, fireCd: 1.0,
+                ...visuals
+              });
+            }
+          } else {
+            if (actors.has(def.id)) {
+              const act = actors.get(def.id);
+              if (act.group) scene.remove(act.group);
+              if (act.tag) act.tag.remove();
+              actors.delete(def.id);
+            }
+          }
+        }
       });
-    });
+    } else {
+      // 4v4 TDM or FFA: ensure all 7 bots are active
+      BOT_DEFS.forEach(def => {
+        if (!actors.has(def.id)) {
+          const visuals = createCharacterMesh(def.team);
+          const sp = spawnPointForTeam(def.team);
+          actors.set(def.id, {
+            id: def.id,
+            name: def.name,
+            team: def.team,
+            isBot: true,
+            x: sp.x, y: 0, z: sp.z,
+            yaw: Math.random() * Math.PI * 2,
+            hp: 100, kills: 0, deaths: 0,
+            wpX: (Math.random() - 0.5) * 52,
+            wpZ: (Math.random() - 0.5) * 52,
+            fireCd: 0.5 + Math.random(),
+            ...visuals
+          });
+        }
+      });
+    }
+  }
+
+  function initBots() {
+    syncBotsForMode();
   }
   initBots();
 
@@ -921,11 +973,13 @@
     peer.on('connection', conn => {
       clientConns.push(conn);
       setMpStatus(`Hosting (${clientConns.length} Connected)`, true);
+      syncBotsForMode();
       conn.on('data', data => handleNetworkPacket(data, conn));
       conn.on('close', () => {
         const idx = clientConns.indexOf(conn);
         if (idx !== -1) clientConns.splice(idx, 1);
         setMpStatus(`Hosting (${clientConns.length} Connected)`, true);
+        syncBotsForMode();
       });
     });
   });
@@ -946,11 +1000,12 @@
 
     peer.on('open', myId => {
       player.id = myId;
-      // Assign client to opposite team in TDM for competitive PvP + Bots, or cycle
+      // Assign client to opposite team in TDM / 1v1 for competitive PvP
       player.team = 'icarus';
       hostConn = peer.connect(targetCode, { reliable: false });
       hostConn.on('open', () => {
         mpRole = 'client';
+        syncBotsForMode();
         setMpStatus(`Connected to ${targetCode}`, true);
         const sp = spawnPointForTeam(player.team);
         player.x = sp.x; player.z = sp.z;
@@ -999,7 +1054,9 @@
     if (data.type === 'client_update' && mpRole === 'host') {
       ensureRemoteActor(data.player);
     } else if (data.type === 'world_snapshot' && mpRole === 'client') {
-      gameMode = data.gameMode;
+      if (gameMode !== data.gameMode) {
+        setGameMode(data.gameMode);
+      }
       scoreHelios = data.scoreHelios;
       scoreIcarus = data.scoreIcarus;
       data.actors.forEach(st => ensureRemoteActor(st));
@@ -1097,7 +1154,7 @@
     const actorMeshes = [];
     actors.forEach(act => {
       if (act.hp <= 0) return;
-      if (gameMode === 'tdm' && act.team === player.team) return; // No friendly fire in TDM
+      if ((gameMode === 'tdm' || gameMode === '1v1') && act.team === player.team) return; // No friendly fire in TDM / 1v1
       act.head.userData.actorId = act.id;
       act.torso.userData.actorId = act.id;
       actorMeshes.push(act.head, act.torso);
@@ -1308,7 +1365,7 @@
         const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
 
         actors.forEach(act => {
-          if (act.hp <= 0 || (gameMode === 'tdm' && act.team === player.team)) return;
+          if (act.hp <= 0 || ((gameMode === 'tdm' || gameMode === '1v1') && act.team === player.team)) return;
           const toEnemy = new THREE.Vector3(act.x - camPos.x, (act.y + 1.1) - camPos.y, act.z - camPos.z);
           const dist = toEnemy.length();
           if (dist < 42) {
@@ -1391,7 +1448,7 @@
       const rz = dx * Math.sin(-player.yaw) + dz * Math.cos(-player.yaw);
       const px = cx + rx * scale, py = cy + rz * scale;
       if (Math.hypot(px - cx, py - cy) < 68) {
-        const isFriendly = (gameMode === 'tdm' && act.team === player.team);
+        const isFriendly = ((gameMode === 'tdm' || gameMode === '1v1') && act.team === player.team);
         radarCtx.fillStyle = isFriendly ? '#38bdf8' : '#f43f5e';
         radarCtx.beginPath(); radarCtx.arc(px, py, 4, 0, Math.PI * 2); radarCtx.fill();
       }
@@ -1594,7 +1651,7 @@
           let bestTarget = null, bestDist = 38;
           const checkCandidate = (candId, cx, cz, cTeam) => {
             if (candId === act.id) return;
-            if (gameMode === 'tdm' && cTeam === act.team) return;
+            if ((gameMode === 'tdm' || gameMode === '1v1') && cTeam === act.team) return;
             const d = Math.hypot(cx - act.x, cz - act.z);
             if (d < bestDist) { bestDist = d; bestTarget = { id: candId, x: cx, z: cz, team: cTeam }; }
           };
@@ -1649,9 +1706,13 @@
       }
 
       // Check Match Victory Reset
-      const cap = gameMode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA;
+      const cap = gameMode === '1v1' ? SCORE_LIMIT_1V1 : (gameMode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
       if (scoreHelios >= cap || scoreIcarus >= cap) {
-        showMedal(scoreHelios >= cap ? 'TASK FORCE HELIOS VICTORY!' : 'ICARUS SYNDICATE VICTORY!');
+        if (gameMode === '1v1') {
+          showMedal(scoreHelios >= cap ? 'TASK FORCE HELIOS WINS THE 1V1!' : 'ICARUS SYNDICATE WINS THE 1V1!');
+        } else {
+          showMedal(scoreHelios >= cap ? 'TASK FORCE HELIOS VICTORY!' : 'ICARUS SYNDICATE VICTORY!');
+        }
         scoreHelios = 0; scoreIcarus = 0;
       }
 
@@ -1680,7 +1741,7 @@
 
       const worldPos = new THREE.Vector3(act.x, act.y + 2.15, act.z);
       worldPos.project(camera);
-      const isFriendly = (gameMode === 'tdm' && act.team === player.team);
+      const isFriendly = ((gameMode === 'tdm' || gameMode === '1v1') && act.team === player.team);
       const dist = Math.hypot(act.x - player.x, act.z - player.z);
 
       if (worldPos.z < 1 && (isFriendly || dist < 26)) {
@@ -1777,21 +1838,26 @@
     toggleFullscreen();
   });
 
-  document.getElementById('mode-tdm').addEventListener('click', () => {
-    gameMode = 'tdm';
-    document.getElementById('mode-tdm').classList.add('active');
-    document.getElementById('mode-ffa').classList.remove('active');
-    document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
-    document.getElementById('score-cap').textContent = SCORE_LIMIT_TDM;
-  });
+  function setGameMode(mode) {
+    gameMode = mode;
+    document.getElementById('mode-tdm').classList.toggle('active', mode === 'tdm');
+    document.getElementById('mode-ffa').classList.toggle('active', mode === 'ffa');
+    document.getElementById('mode-1v1').classList.toggle('active', mode === '1v1');
+    const cap = mode === '1v1' ? SCORE_LIMIT_1V1 : (mode === 'tdm' ? SCORE_LIMIT_TDM : SCORE_LIMIT_FFA);
+    document.getElementById('score-cap').textContent = cap;
+    if (mode === '1v1') {
+      document.getElementById('hud-mode-label').textContent = '1V1 DUEL — SANTORINI CALDERA';
+    } else if (mode === 'tdm') {
+      document.getElementById('hud-mode-label').textContent = '4V4 TEAM DEATHMATCH — SANTORINI';
+    } else {
+      document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
+    }
+    syncBotsForMode();
+  }
 
-  document.getElementById('mode-ffa').addEventListener('click', () => {
-    gameMode = 'ffa';
-    document.getElementById('mode-ffa').classList.add('active');
-    document.getElementById('mode-tdm').classList.remove('active');
-    document.getElementById('hud-mode-label').textContent = 'FREE-FOR-ALL — SANTORINI CALDERA';
-    document.getElementById('score-cap').textContent = SCORE_LIMIT_FFA;
-  });
+  document.getElementById('mode-tdm').addEventListener('click', () => setGameMode('tdm'));
+  document.getElementById('mode-ffa').addEventListener('click', () => setGameMode('ffa'));
+  document.getElementById('mode-1v1').addEventListener('click', () => setGameMode('1v1'));
 
   document.querySelectorAll('[data-gfx]').forEach(btn => {
     btn.addEventListener('click', () => {
